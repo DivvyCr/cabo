@@ -18,7 +18,7 @@ Cabo is a card game by Melissa Limes, where you aim to reduce the nominal sum of
   * Call CABO, without playing any cards.
     * This gives all other players 1 more turn, after which the round ends.
 
-#### Substituting multiple cards for one from the deck.
+#### Substituting multiple cards for one.
   If you believe that you have 2 or more cards of the same nominal value, you may swap both of them for the card that you picked from the deck or the discard pile). If the cards do not have the same nominal value, their are placed face-up, and you keep the new card, too.
   
 Examples:
