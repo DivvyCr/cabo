@@ -6,8 +6,8 @@ package com.company;
 public class Main {
     public static void main(String[] args) {
         Game_Cabo game = new Game_Cabo();
-        game.addPlayerByName("Andrei");
-        game.addPlayerByName("Sveta");
+        game.addPlayerByName("Player 1");
+        game.addPlayerByName("Player 2");
         game.startGame();
     }
 }
