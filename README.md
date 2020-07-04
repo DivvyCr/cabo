@@ -23,12 +23,12 @@ Cabo is a card game by Melissa Limes, where you aim to reduce the nominal sum of
   
 Examples:
   * Initial hand: 5, 7, 5, 2
-  * Pick a card from the deck: 4
-  * Swap two 5s for the 4: 4, 7, 2
+    * Pick a card from the deck: 4
+    * Swap two 5s for the 4: 4, 7, 2
   
   * Initial hand: 1, 3, 3, 3
-  * Pick a card from the deck: 5
-  * Try to swap three 3s for the 5, but choose the wrong cards: 1, 3, 3, 3, 5 (the two picked cards are face-up)
+    * Pick a card from the deck: 5
+    * Try to swap three 3s for the 5, but choose the wrong cards: 1, 3, 3, 3, 5 (the two picked cards are face-up)
 
 ### Card Actions
   Some cards have special actions attached to them:
