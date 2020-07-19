@@ -1,3 +1,5 @@
+emacs magit test
+
 # Cabo
 Cabo is a card game by Melissa Limes, where you aim to reduce the nominal sum of your hand by exchanging cards from the deck or other players. The twist is that you only know 2 of your cards at the beginning, and you must remember them (all cards are face-down, by default). Hovewer, you are able to 'Peek' your other cards or swap them for known ones, which is outlined below.
 
