@@ -1,5 +1,3 @@
-package com.company;
-
 public class Card {
     private static int cardCount = 0;
     private int cardID;

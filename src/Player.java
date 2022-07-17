@@ -1,5 +1,3 @@
-package com.company;
-
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -40,7 +38,7 @@ public class Player {
         System.out.println("Choose a card to spy. (Press 1 through " + chosenPlayer.getHandSize() + ")");
         int cardPosition = scanner.nextInt();
 
-        Card card = chosenPlayer.getCardByPosition(cardPosition - 1);
+        Card card = chosenPlayer.getCardByPosition(cardPosition);
         printPlayerCardInPosition(chosenPlayer, card, cardPosition);
 
     }
@@ -62,9 +60,9 @@ public class Player {
         }
 
         System.out.println("Choose which of your cards you wish to swap. (Press 1 through " + this.getHandSize() + ")");
-        Card ownCard = this.getCardByPosition(scanner.nextInt()-1);
-        System.out.println("Choose " + playerToSwapWith + "'s card. (Press 1 through " + playerToSwapWith.getHandSize() + ")");
-        Card theirCard = playerToSwapWith.getCardByPosition(scanner.nextInt()-1);
+        Card ownCard = this.getCardByPosition(scanner.nextInt());
+        System.out.println("Choose " + playerToSwapWith.getName() + "'s card. (Press 1 through " + playerToSwapWith.getHandSize() + ")");
+        Card theirCard = playerToSwapWith.getCardByPosition(scanner.nextInt());
 
         Card buffer = theirCard;
         theirCard = ownCard;
