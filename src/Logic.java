@@ -1,9 +1,7 @@
-package com.company;
-
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class Game_Cabo {
+public class Logic {
     private Scanner scanner = new Scanner(System.in);
     private ArrayList<Player> players = new ArrayList<>();
     private boolean gameOver;
@@ -12,7 +10,7 @@ public class Game_Cabo {
     private CardPile deck;
     private CardPile discardPile;
 
-    public Game_Cabo() {
+    public Logic() {
         System.out.println("Setting up a new game of CABO...");
         deck = createSortedDeck();
         deck.shuffle();
@@ -60,7 +58,7 @@ public class Game_Cabo {
 
             System.out.println("Choose one of the following actions:\n" +
                     "> 1. DRAW from the deck.\n" +
-                    "> 2. DRAW from the discard pile. (" + discardPile.getTopCard().toString() + ")");
+                    "> 2. PICK ( " + discardPile.getTopCard().toString() + " ) from the discard pile.");
 
             int action = scanner.nextInt();
             if (action == 1) {
@@ -113,9 +111,10 @@ public class Game_Cabo {
         System.out.println("How many cards would you like to swap with? (if you have multiple equal cards in hand)");
         int amountOfCards = letPlayerChooseNumberBetween(1, player.getHandSize());
         ArrayList<Integer> chosenCards = new ArrayList<>();
+	int chosenCardPosition = 0;
         for (int i = amountOfCards; i > 0; i--) {
             System.out.println("Which of your cards would you like to swap?");
-            int chosenCardPosition = letPlayerChooseCardPosition(player);
+            chosenCardPosition = letPlayerChooseCardPosition(player);
             if (!chosenCards.contains(chosenCardPosition)) {
                 chosenCards.add(chosenCardPosition);
             } else {
@@ -127,6 +126,7 @@ public class Game_Cabo {
         // ???
 
         Card playersOldCard = player.swapOwnCardForNewCard(chosenCardPosition, card);
+	System.out.println("Hey!");
         discardPile.addCardToTop(playersOldCard);
     }
 
@@ -244,7 +244,7 @@ public class Game_Cabo {
         System.out.println("Type Y for yes or N for no.");
         while (true) {
             String userInput = scanner.next();
-            if (Pattern.matches("[yn]", userInput)) {
+            if (Pattern.matches("[ynYN]", userInput)) {
                 return userInput.equals("y");
             } else {
                 System.out.println("Type Y for yes or N for no.");
