@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -12,37 +13,51 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
     private final static Rectangle DIM = new Rectangle(0, 0, 2560, 1440);
-    static {
-	DIM.setFill(Color.BLACK);
-	DIM.setOpacity(0.6);
-    }
-    private CardView shownCard;
+    private ActionPane ap = new ActionPane();
 
+    private ArrayList<Player> players = new ArrayList<>();
+    private CardPile deck;
+    private CardPile discardPile;
+
+    private int apClickCount;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-	CardPile deck = new CardPile();
-	for (int i = 0; i <= 13; i++) {
-	    if (i == 0 || i == 13) {
-		deck.addCardToTop(new Card(i, true));
-		deck.addCardToTop(new Card(i, true));
-	    } else {
-		deck.addCardToTop(new Card(i, true));
-		deck.addCardToTop(new Card(i, true));
-		deck.addCardToTop(new Card(i, true));
-		deck.addCardToTop(new Card(i, true));
-	    }
+	//
+	// Set-up the game.
+	//
+
+	deck = new CardPile();
+	for (int val = 0; val <= 13; val++) {
+	    int numCards = (val == 0 || val == 13) ? 2 : 4;
+	    for (int i = 0; i < numCards; i++) deck.addCardToTop(new Card(val, true));
 	}
 	deck.shuffle();
 
+	discardPile = new CardPile();
+	discardPile.addCardToTop(deck.drawTopCard());
+	discardPile.getTopCard().flipCard();
+
+	Player mainPlayer = new Player("Player 1");
+	players.add(mainPlayer);
+
+	ArrayList<Card> mainHand = new ArrayList<>();
+	for (int i = 0; i < 4; i++) mainHand.add(deck.drawTopCard());
+	mainPlayer.setHand(mainHand);
+
 	// ---
+
+	DIM.setFill(Color.BLACK);
+	DIM.setOpacity(0.8);
 
 	StackPane r = new StackPane();
 
@@ -51,84 +66,85 @@ public class Main extends Application {
 	gp.setVgap(80);
 	r.getChildren().add(gp);
 
-	// Deck (on the left)
 	DeckView dv = new DeckView(deck);
-	gp.add(dv, 0, 0);
+	gp.add(dv, 0, 1);
+	gp.add(new CardView(discardPile.getTopCard()), 2, 1); // PLACEHOLDER.
 
-	// PLACEHOLDER for Discard (on the right)
-	gp.add(new CardView(new Card(9, false)), 2, 0);
+	HandPane hp = new HandPane(mainHand);
+	gp.add(hp, 1, 2);
 
-	// Local player's hand
-	ArrayList<Card> hand = new ArrayList<>();
-	hand.add(new Card(7, true));
-	hand.add(new Card(1, true));
-	hand.add(new Card(11, false));
-	HandPane hp = new HandPane(hand);
-	gp.add(hp, 1, 1);
+	// ---
 
-	dv.setOnMouseClicked((MouseEvent e) -> {
-		r.getChildren().add(DIM);
+	ap.setTop(new Text("Peek cards:"));
 
-		Card drawn = deck.drawTopCard();
-		drawn.flipCard();
-		shownCard = new CardView(drawn);
-		StackPane.setAlignment(shownCard, Pos.CENTER);
-		r.getChildren().add(shownCard);
+	HandPane hpCopy = new HandPane(mainHand);
+	for (CardView cv : hpCopy.getCardViews()) {
+	    cv.setOnMouseClicked(e -> {
+		    cv.setSeen();
+		});
+	}
+
+	ap.setBot(hpCopy);
+
+	r.getChildren().add(DIM);
+	r.getChildren().add(ap);
+
+	apClickCount = 0;
+	ap.setOnMouseClicked(e -> {
+		apClickCount++;
+		if (apClickCount == 2) {
+		    for (CardView cv : hpCopy.getCardViews()) cv.setOnMouseClicked(null);
+		}
 	    });
 
-	DIM.setOnMouseClicked((MouseEvent e) -> {
-		r.getChildren().remove(DIM);
-		r.getChildren().remove(shownCard);
+	DIM.setOnMouseClicked(e -> {
+		if (apClickCount > 2) {
+		    r.getChildren().remove(DIM);
+		    r.getChildren().remove(ap);
+		}
 	    });
+
+	// ---
 
 	primaryStage.setTitle("Hello JavaFX!");
 	primaryStage.setScene(new Scene(r, 2560, 1440));
 	primaryStage.show();
     }
 
-    public static void main(String[] args) {
-	launch(args);
-
-//        Logic logic = new Logic();
-//        logic.addPlayerByName("cabo.Player 1");
-//        logic.addPlayerByName("cabo.Player 2");
-//        logic.startGame();
-    }
+    public static void main(String[] args) { launch(args); }
 }
 
 class CardView extends ImageView {
 
-    private Card card;
-    private Image seen;
+    private final Card card;
+    private final Image SEEN;
+    private final Image HIDDEN;
 
     public CardView(Card card) {
-	this.card = card;
+	SEEN = new Image(getClass().getResourceAsStream(card.getValue() + ".jpeg"));
+	HIDDEN = new Image(getClass().getResourceAsStream("hidden.jpeg"));
 
 	setPreserveRatio(true);
 	setFitWidth(200);
+	if (card.isFaceDown()) setImage(HIDDEN);
+	else setImage(SEEN);
 
-	seen = new Image(getClass().getResourceAsStream(card.getValue() + ".jpeg"));
-	setImage(seen);
-
-	setOnMouseClicked((MouseEvent e) -> {
-		System.out.println("Clicked! (Card)");
-		flip();
-	    });
-
-	if (card.isFaceDown()) setImage(new Image(getClass().getResourceAsStream("hidden.jpeg")));
-	else setImage(seen);
+	this.card = card;
     }
 
-    public void flip() {
-	card.flipCard();
+    public void setSeen() {
+	setImage(SEEN);
+    }
 
-	if (card.isFaceDown()) setImage(new Image(getClass().getResourceAsStream("hidden.jpeg")));
-	else setImage(seen);
+    public void setHidden() {
+	setImage(HIDDEN);
     }
 
 }
 
 class HandPane extends HBox {
+
+    private ArrayList<CardView> cardViews = new ArrayList<>();
 
     public HandPane(ArrayList<Card> cards) {
 	setStyle("-fx-border-color: #DDD; -fx-border-width: 4px; -fx-border-radius: 6px");
@@ -136,8 +152,14 @@ class HandPane extends HBox {
 	setPadding(new Insets(15));
 
 	for (Card card : cards) {
-	    getChildren().add(new CardView(card));
+	    CardView cv = new CardView(card);
+	    cardViews.add(cv);
+	    getChildren().add(cv);
 	}
+    }
+
+    public ArrayList<CardView> getCardViews() {
+	return cardViews;
     }
 
 }
@@ -159,6 +181,31 @@ class DeckView extends ImageView {
 	//	Card drawn = deck.drawTopCard();
 	//	setImage(new Image(getClass().getResourceAsStream(drawn.getValue() + ".jpeg")));
 	//     });
+    }
+
+}
+
+class ActionPane extends VBox {
+
+    private Node topNode;
+    private Node botNode;
+
+    public ActionPane() {
+	setSpacing(50);
+	setAlignment(Pos.CENTER);
+	setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
+    }
+
+    public void setTop(Node node) {
+	getChildren().remove(this.topNode);
+	this.topNode = node;
+	getChildren().add(node);
+    }
+
+    public void setBot(Node node) {
+	getChildren().remove(this.botNode);
+	this.botNode = node;
+	getChildren().add(node);
     }
 
 }
