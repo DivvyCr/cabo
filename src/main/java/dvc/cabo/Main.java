@@ -25,15 +25,20 @@ public class Main extends Application {
     private final static Font instructionFont = Font.font("helvetica", FontWeight.BOLD, 20);
 
     private ActionPane ap = new ActionPane();
+    private Text instruction = new Text();
 
     private ArrayList<Player> players = new ArrayList<>();
     private CardPile deck;
     private CardPile discardPile;
 
     private int cardsClicked;
+    private int cardIdx;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+	instruction.setFont(instructionFont);
+	instruction.setFill(Color.WHITE);
+
 	//
 	// Set-up the game.
 	//
@@ -65,44 +70,76 @@ public class Main extends Application {
 	gp.setVgap(80);
 	r.getChildren().add(gp);
 
-	DeckView dv = new DeckView(deck);
-	gp.add(dv, 0, 1);
-	gp.add(new CardView(discardPile.getTopCard()), 2, 1); // PLACEHOLDER.
+	CardView deckView = new CardView(deck.getTopCard());
+	deckView.setHidden();
+	gp.add(deckView, 0, 1);
+	CardView discardView = new CardView(discardPile.getTopCard());
+	discardView.setSeen();
+	gp.add(discardView, 2, 1);
 
 	HandPane hp = new HandPane(mainHand);
 	gp.add(hp, 1, 2);
 
 	// ---
 
-	Text instruction = new Text("Peek cards:");
-	instruction.setFont(instructionFont);
-	instruction.setFill(Color.WHITE);
+	instruction.setText("Peek cards:");
 	ap.setTop(instruction);
 
 	cardsClicked = 0;
-	
-	HandPane hpCopy = new HandPane(mainHand);
-	for (CardView cv : hpCopy.getCardViews()) {
+
+	HandPane hp1 = new HandPane(mainHand);
+	for (CardView cv : hp1.getCardViews()) {
 	    cv.setOnMouseClicked(e -> {
 		    cv.setSeen();
 		    cardsClicked++;
 		});
 	}
 
-	ap.setBot(hpCopy);
+	ap.setBot(hp1);
 
 	r.getChildren().add(ap);
 
 	ap.setOnMouseClicked(e -> {
 		if (cardsClicked == 2) {
-		    for (CardView cv : hpCopy.getCardViews()) cv.setOnMouseClicked(null);
+		    for (CardView cv : hp1.getCardViews()) cv.setOnMouseClicked(null);
 
 		    Button temp = new Button("Click to proceed.");
 		    temp.setOnMouseClicked(ee -> {
 			    r.getChildren().remove(ap);
+			    ap.clear();
+
+			    instruction.setText("DRAW a card from the deck or the discard pile.");
+			    instruction.setFill(Color.BLACK);
+			    gp.add(instruction, 1, 1);
 			});
 		    ap.setTop(temp);
 		}
+	    });
+
+	// ---
+
+	HandPane hp2 = new HandPane(mainHand);
+
+	deckView.setOnMouseClicked(e -> {
+		ap.setOnMouseClicked(null);
+
+		Card drawn = deck.drawTopCard();
+
+		for (CardView cv : hp2.getCardViews()) {
+		    cv.setOnMouseClicked(ee -> {
+			    cardIdx = hp2.getCardViews().indexOf(cv);
+			    mainHand.set(cardIdx, drawn);
+			    HandPane newHP = new HandPane(mainHand);
+			    gp.add(newHP, 1, 2);
+
+			    r.getChildren().remove(ap);
+			    ap.clear();
+			});
+		}
+
+		ap.setTop(new CardView(drawn));
+		ap.setBot(hp2);
+		r.getChildren().add(ap);
 	    });
 
 	// ---
@@ -165,29 +202,8 @@ class HandPane extends HBox {
 
 }
 
-class DeckView extends ImageView {
-
-    private CardPile deck;
-
-    public DeckView(CardPile deck) {
-	this.deck = deck;
-
-	setPreserveRatio(true);
-	setFitWidth(200);
-
-	setImage(new Image(getClass().getResourceAsStream("hidden.jpeg")));
-
-	// setOnMouseClicked((MouseEvent e) -> {
-	//	System.out.println("Clicked! (Deck)");
-	//	Card drawn = deck.drawTopCard();
-	//	setImage(new Image(getClass().getResourceAsStream(drawn.getValue() + ".jpeg")));
-	//     });
-    }
-
-}
-
 class ActionPane extends StackPane {
-    
+
     private final Rectangle DIM;
 
     private GridPane nodes;
@@ -198,7 +214,7 @@ class ActionPane extends StackPane {
 	DIM = new Rectangle(0, 0, 2560, 1440);
 	DIM.setFill(Color.BLACK);
 	DIM.setOpacity(0.8);
-	
+
 	nodes = new GridPane();
 	nodes.setVgap(50);
 	nodes.setAlignment(Pos.CENTER);
@@ -218,6 +234,10 @@ class ActionPane extends StackPane {
 	this.botNode = node;
 	GridPane.setHalignment(botNode, HPos.CENTER);
 	nodes.add(botNode, 0, 1);
+    }
+
+    public void clear() {
+	nodes.getChildren().clear();
     }
 
 }
