@@ -3,32 +3,34 @@ package dvc.cabo;
 import java.util.ArrayList;
 
 import javafx.application.Application;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
+import javafx.scene.text.*;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private final static Rectangle DIM = new Rectangle(0, 0, 2560, 1440);
+    private final static Font instructionFont = Font.font("helvetica", FontWeight.BOLD, 20);
+
     private ActionPane ap = new ActionPane();
 
     private ArrayList<Player> players = new ArrayList<>();
     private CardPile deck;
     private CardPile discardPile;
 
-    private int apClickCount;
+    private int cardsClicked;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -56,9 +58,6 @@ public class Main extends Application {
 
 	// ---
 
-	DIM.setFill(Color.BLACK);
-	DIM.setOpacity(0.8);
-
 	StackPane r = new StackPane();
 
 	GridPane gp = new GridPane();
@@ -75,32 +74,34 @@ public class Main extends Application {
 
 	// ---
 
-	ap.setTop(new Text("Peek cards:"));
+	Text instruction = new Text("Peek cards:");
+	instruction.setFont(instructionFont);
+	instruction.setFill(Color.WHITE);
+	ap.setTop(instruction);
 
+	cardsClicked = 0;
+	
 	HandPane hpCopy = new HandPane(mainHand);
 	for (CardView cv : hpCopy.getCardViews()) {
 	    cv.setOnMouseClicked(e -> {
 		    cv.setSeen();
+		    cardsClicked++;
 		});
 	}
 
 	ap.setBot(hpCopy);
 
-	r.getChildren().add(DIM);
 	r.getChildren().add(ap);
 
-	apClickCount = 0;
 	ap.setOnMouseClicked(e -> {
-		apClickCount++;
-		if (apClickCount == 2) {
+		if (cardsClicked == 2) {
 		    for (CardView cv : hpCopy.getCardViews()) cv.setOnMouseClicked(null);
-		}
-	    });
 
-	DIM.setOnMouseClicked(e -> {
-		if (apClickCount > 2) {
-		    r.getChildren().remove(DIM);
-		    r.getChildren().remove(ap);
+		    Button temp = new Button("Click to proceed.");
+		    temp.setOnMouseClicked(ee -> {
+			    r.getChildren().remove(ap);
+			});
+		    ap.setTop(temp);
 		}
 	    });
 
@@ -185,27 +186,38 @@ class DeckView extends ImageView {
 
 }
 
-class ActionPane extends VBox {
+class ActionPane extends StackPane {
+    
+    private final Rectangle DIM;
 
+    private GridPane nodes;
     private Node topNode;
     private Node botNode;
 
     public ActionPane() {
-	setSpacing(50);
-	setAlignment(Pos.CENTER);
-	setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
+	DIM = new Rectangle(0, 0, 2560, 1440);
+	DIM.setFill(Color.BLACK);
+	DIM.setOpacity(0.8);
+	
+	nodes = new GridPane();
+	nodes.setVgap(50);
+	nodes.setAlignment(Pos.CENTER);
+	nodes.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
+
+	getChildren().add(DIM);
+	getChildren().add(nodes);
     }
 
     public void setTop(Node node) {
-	getChildren().remove(this.topNode);
 	this.topNode = node;
-	getChildren().add(node);
+	GridPane.setHalignment(topNode, HPos.CENTER);
+	nodes.add(topNode, 0, 0);
     }
 
     public void setBot(Node node) {
-	getChildren().remove(this.botNode);
 	this.botNode = node;
-	getChildren().add(node);
+	GridPane.setHalignment(botNode, HPos.CENTER);
+	nodes.add(botNode, 0, 1);
     }
 
 }
