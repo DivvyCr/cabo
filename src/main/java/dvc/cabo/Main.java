@@ -30,6 +30,7 @@ public class Main extends Application {
     private Text instruction = new Text();
 
     private ArrayList<Player> players = new ArrayList<>();
+    private int currentPlayerIdx = 0;
     private CardPile deck;
     private CardPile discardPile;
 
@@ -56,12 +57,16 @@ public class Main extends Application {
 	discardPile.addCardToTop(deck.drawTopCard());
 	discardPile.getTopCard().flipCard();
 
-	Player mainPlayer = new Player("Player 1");
-	players.add(mainPlayer);
+	Player player1 = new Player("Player 1");
+	players.add(player1);
+	Player player2 = new Player("Player 2");
+	players.add(player2);
 
-	ArrayList<Card> mainHand = new ArrayList<>();
-	for (int i = 0; i < 4; i++) mainHand.add(deck.drawTopCard());
-	mainPlayer.setHand(mainHand);
+	for (Player p : players) {
+	    ArrayList<Card> pHand = new ArrayList<>();
+	    for (int i = 0; i < 4; i++) pHand.add(deck.drawTopCard());
+	    p.setHand(pHand);
+	}
 
 	// ---
 
@@ -78,17 +83,21 @@ public class Main extends Application {
 	discardView = new DeckView(new CardView(discardPile.getTopCard()));
 	gp.add(discardView, 2, 1);
 
-	HandPane hp = new HandPane(mainHand);
-	gp.add(hp, 1, 2);
+	HandPane rootHP1 = new HandPane(player1.getHand());
+	gp.add(rootHP1, 1, 2);
+	HandPane rootHP2 = new HandPane(player2.getHand());
+	gp.add(rootHP2, 1, 0);
 
-	// ---
+	//
+	// Rough logic for INITIAL PEEKS:
+	//
 
 	instruction.setText("Peek cards:");
 	ap.setTop(instruction);
 
 	cardsClicked = 0;
 
-	HandPane hp1 = new HandPane(mainHand);
+	HandPane hp1 = new HandPane(player1.getHand());
 	for (CardView cv : hp1.getCardViews()) {
 	    cv.setOnMouseClicked(e -> {
 		    cv.setSeen();
@@ -117,9 +126,11 @@ public class Main extends Application {
 		}
 	    });
 
-	// ---
+	//
+	// Rough logic for DRAWING CARDS:
+	//
 
-	HandPane hp2 = new HandPane(mainHand);
+	HandPane hp2 = new HandPane(player1.getHand());
 
 	deckView.setOnMouseClicked(e -> {
 		Card drawn = deck.drawTopCard();
@@ -131,21 +142,45 @@ public class Main extends Application {
 			    hp2.setCardViewByIdx(cardIdx, deckView.getTopCardView());
 			    gp.add(hp2, 1, 2);
 
-			    Card discard = mainPlayer.swapOwnCardForNewCard(cardIdx+1, drawn);
+			    Card discard = player1.swapOwnCardForNewCard(cardIdx+1, drawn);
 			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
 			    discardPile.addCardToTop(discard);
 			    discardView.setTopCardView(new CardView(discard));
 			    deckView.setTopCardView(new CardView(deck.getTopCard()));
 
-			    mainHand.set(cardIdx, drawn);
+			    player1.getHand().set(cardIdx, drawn);
 
 			    r.getChildren().remove(ap);
 			    ap.clear();
 			});
 		}
 
-		ap.setTop(new CardView(drawn));
+		CardView drawnCardView = new CardView(drawn);
+		drawnCardView.setSeen(); // Does not affect real card state! (Just for viewing, as in real life.)
+		ap.setTop(drawnCardView);
 		ap.setBot(hp2);
+
+		if (drawn.getAction().equals("SPY")) {
+		    Button actionButton = new Button("Click to " + drawn.getAction());
+		    actionButton.setOnMouseClicked(ee -> {
+			    ap.clear();
+			    cardsClicked = 0;
+			    HandPane victimHandPane = new HandPane(player2.getHand());
+			    for (CardView cv : victimHandPane.getCardViews()) {
+				cv.setOnMouseClicked(eee -> {
+					if (cardsClicked < 1) cv.setSeen();
+					else {
+					    r.getChildren().remove(ap);
+					    ap.clear();
+					}
+					cardsClicked++;
+				    });
+			    }
+			    ap.setMid(victimHandPane);
+			});
+		    ap.setMid(actionButton);
+		}
+
 		ap.setOnMouseClicked(null);
 		r.getChildren().add(ap);
 	    });
@@ -160,12 +195,12 @@ public class Main extends Application {
 			    hp2.setCardViewByIdx(cardIdx, discardView.getTopCardView());
 			    gp.add(hp2, 1, 2);
 
-			    Card discard = mainPlayer.swapOwnCardForNewCard(cardIdx+1, drawn);
+			    Card discard = player1.swapOwnCardForNewCard(cardIdx+1, drawn);
 			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
 			    discardPile.addCardToTop(discard);
 			    discardView.setTopCardView(new CardView(discard));
 
-			    mainHand.set(cardIdx, drawn);
+			    player1.getHand().set(cardIdx, drawn);
 
 			    r.getChildren().remove(ap);
 			    ap.clear();
@@ -269,6 +304,7 @@ class ActionPane extends StackPane {
 
     private GridPane nodes;
     private Node topNode;
+    private Node midNode;
     private Node botNode;
 
     public ActionPane() {
@@ -277,7 +313,7 @@ class ActionPane extends StackPane {
 	DIM.setOpacity(0.8);
 
 	nodes = new GridPane();
-	nodes.setVgap(50);
+	nodes.setVgap(30);
 	nodes.setAlignment(Pos.CENTER);
 	nodes.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
 
@@ -291,10 +327,16 @@ class ActionPane extends StackPane {
 	nodes.add(topNode, 0, 0);
     }
 
+    public void setMid(Node node) {
+	this.midNode = node;
+	GridPane.setHalignment(midNode, HPos.CENTER);
+	nodes.add(midNode, 0, 1);
+    }
+
     public void setBot(Node node) {
 	this.botNode = node;
 	GridPane.setHalignment(botNode, HPos.CENTER);
-	nodes.add(botNode, 0, 1);
+	nodes.add(botNode, 0, 2);
     }
 
     public void clear() {
