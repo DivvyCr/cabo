@@ -160,6 +160,27 @@ public class Main extends Application {
 		ap.setTop(drawnCardView);
 		ap.setBot(hp2);
 
+		if (drawn.getAction().equals("PEEK")) {
+		    Button actionButton = new Button("Click to " + drawn.getAction());
+		    actionButton.setOnMouseClicked(ee -> {
+			    ap.clear();
+			    cardsClicked = 0;
+			    for (CardView cv : hp2.getCardViews()) {
+				cv.setOnMouseClicked(eee -> {
+					if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
+					else {
+					    cv.setHidden(); // Unless check above implemented, could lead to bug.
+					    r.getChildren().remove(ap);
+					    ap.clear();
+					}
+					cardsClicked++;
+				    });
+			    }
+			    ap.setMid(hp2);
+			});
+		    ap.setMid(actionButton);
+		}
+
 		if (drawn.getAction().equals("SPY")) {
 		    Button actionButton = new Button("Click to " + drawn.getAction());
 		    actionButton.setOnMouseClicked(ee -> {
@@ -168,8 +189,9 @@ public class Main extends Application {
 			    HandPane victimHandPane = new HandPane(player2.getHand());
 			    for (CardView cv : victimHandPane.getCardViews()) {
 				cv.setOnMouseClicked(eee -> {
-					if (cardsClicked < 1) cv.setSeen();
+					if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
 					else {
+					    cv.setHidden(); // Unless check above implemented, could lead to bug.
 					    r.getChildren().remove(ap);
 					    ap.clear();
 					}
