@@ -25,6 +25,8 @@ public class Main extends Application {
     private final static Font instructionFont = Font.font("helvetica", FontWeight.BOLD, 20);
 
     private ActionPane ap = new ActionPane();
+    private DeckView deckView;
+    private DeckView discardView;
     private Text instruction = new Text();
 
     private ArrayList<Player> players = new ArrayList<>();
@@ -70,11 +72,10 @@ public class Main extends Application {
 	gp.setVgap(80);
 	r.getChildren().add(gp);
 
-	CardView deckView = new CardView(deck.getTopCard());
-	deckView.setHidden();
+	deckView = new DeckView(new CardView(deck.getTopCard()));
 	gp.add(deckView, 0, 1);
-	CardView discardView = new CardView(discardPile.getTopCard());
-	discardView.setSeen();
+
+	discardView = new DeckView(new CardView(discardPile.getTopCard()));
 	gp.add(discardView, 2, 1);
 
 	HandPane hp = new HandPane(mainHand);
@@ -121,16 +122,22 @@ public class Main extends Application {
 	HandPane hp2 = new HandPane(mainHand);
 
 	deckView.setOnMouseClicked(e -> {
-		ap.setOnMouseClicked(null);
-
 		Card drawn = deck.drawTopCard();
 
 		for (CardView cv : hp2.getCardViews()) {
 		    cv.setOnMouseClicked(ee -> {
 			    cardIdx = hp2.getCardViews().indexOf(cv);
+
+			    hp2.setCardViewByIdx(cardIdx, deckView.getTopCardView());
+			    gp.add(hp2, 1, 2);
+
+			    Card discard = mainPlayer.swapOwnCardForNewCard(cardIdx+1, drawn);
+			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
+			    discardPile.addCardToTop(discard);
+			    discardView.setTopCardView(new CardView(discard));
+			    deckView.setTopCardView(new CardView(deck.getTopCard()));
+
 			    mainHand.set(cardIdx, drawn);
-			    HandPane newHP = new HandPane(mainHand);
-			    gp.add(newHP, 1, 2);
 
 			    r.getChildren().remove(ap);
 			    ap.clear();
@@ -139,12 +146,41 @@ public class Main extends Application {
 
 		ap.setTop(new CardView(drawn));
 		ap.setBot(hp2);
+		ap.setOnMouseClicked(null);
+		r.getChildren().add(ap);
+	    });
+
+	discardView.setOnMouseClicked(e -> {
+		Card drawn = discardPile.drawTopCard();
+
+		for (CardView cv : hp2.getCardViews()) {
+		    cv.setOnMouseClicked(ee -> {
+			    cardIdx = hp2.getCardViews().indexOf(cv);
+
+			    hp2.setCardViewByIdx(cardIdx, discardView.getTopCardView());
+			    gp.add(hp2, 1, 2);
+
+			    Card discard = mainPlayer.swapOwnCardForNewCard(cardIdx+1, drawn);
+			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
+			    discardPile.addCardToTop(discard);
+			    discardView.setTopCardView(new CardView(discard));
+
+			    mainHand.set(cardIdx, drawn);
+
+			    r.getChildren().remove(ap);
+			    ap.clear();
+			});
+		}
+
+		ap.setTop(new CardView(drawn));
+		ap.setBot(hp2);
+		ap.setOnMouseClicked(null);
 		r.getChildren().add(ap);
 	    });
 
 	// ---
 
-	primaryStage.setTitle("Hello JavaFX!");
+	primaryStage.setTitle("DV // Cabo.");
 	primaryStage.setScene(new Scene(r, 2560, 1440));
 	primaryStage.show();
     }
@@ -180,6 +216,26 @@ class CardView extends ImageView {
 
 }
 
+class DeckView extends StackPane {
+
+    private CardView topCardView;
+
+    public DeckView(CardView topCardView) {
+	this.topCardView = topCardView;
+	getChildren().setAll(topCardView);
+    }
+
+    public CardView getTopCardView() {
+	return topCardView;
+    }
+
+    public void setTopCardView(CardView topCardView) {
+	this.topCardView = topCardView;
+	getChildren().setAll(topCardView);
+    }
+
+}
+
 class HandPane extends HBox {
 
     private ArrayList<CardView> cardViews = new ArrayList<>();
@@ -198,6 +254,11 @@ class HandPane extends HBox {
 
     public ArrayList<CardView> getCardViews() {
 	return cardViews;
+    }
+
+    public void setCardViewByIdx(int idx, CardView cardView) {
+	cardViews.set(idx, cardView);
+	getChildren().setAll(cardViews);
     }
 
 }
