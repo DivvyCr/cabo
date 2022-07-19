@@ -36,6 +36,7 @@ public class Main extends Application {
 
     private int cardsClicked;
     private int cardIdx;
+    private int cardIdx2;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -199,6 +200,57 @@ public class Main extends Application {
 				    });
 			    }
 			    ap.setMid(victimHandPane);
+			});
+		    ap.setMid(actionButton);
+		}
+
+		if (drawn.getAction().equals("SWAP")) {
+		    Button actionButton = new Button("Click to " + drawn.getAction());
+		    actionButton.setOnMouseClicked(ee -> {
+			    ap.clear();
+			    cardsClicked = 0;
+			    HandPane victimHandPane = new HandPane(player2.getHand());
+
+			    instruction.setText("Pick opponent's card (ABOVE)");
+			    instruction.setFill(Color.WHITE);
+			    ap.setMid(instruction);
+
+			    for (CardView cv : victimHandPane.getCardViews()) {
+				cv.setOnMouseClicked(eee -> {
+					if (cardsClicked == 0) {
+					    cardIdx = victimHandPane.getCardViews().indexOf(cv);
+					    instruction.setText("Pick own card (BELOW)");
+					} else {
+					    r.getChildren().remove(ap);
+					    ap.clear();
+					}
+					cardsClicked++;
+				    });
+			    }
+
+			    for (CardView cv : hp2.getCardViews()) {
+				cv.setOnMouseClicked(eee -> {
+					if (cardsClicked == 1) {
+					    cardIdx2 = hp2.getCardViews().indexOf(cv);
+
+					    Card buffer = player2.getHand().get(cardIdx);
+					    player2.getHand().set(cardIdx, player1.getHand().get(cardIdx2));
+					    player1.getHand().set(cardIdx2, buffer);
+
+					    HandPane newHP2 = new HandPane(player2.getHand());
+					    gp.add(newHP2, 1, 0);
+					    HandPane newHP1 = new HandPane(player1.getHand());
+					    gp.add(newHP1, 1, 2);
+
+					    r.getChildren().remove(ap);
+					    ap.clear();
+					}
+					cardsClicked++;
+				    });
+			    }
+
+			    ap.setTop(victimHandPane);
+			    ap.setBot(hp2);
 			});
 		    ap.setMid(actionButton);
 		}
