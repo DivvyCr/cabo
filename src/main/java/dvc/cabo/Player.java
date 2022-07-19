@@ -104,6 +104,10 @@ public class Player {
         return name;
     }
 
+    public ArrayList<Card> getHand() {
+	return hand;
+    }
+
     public Card getCardByPosition(int cardPosition) {
         return this.hand.get(cardPosition-1);
     }
