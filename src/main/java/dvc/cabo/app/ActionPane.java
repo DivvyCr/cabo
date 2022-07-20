@@ -5,7 +5,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.*;
 
-abstract class ActionPane extends StackPane {
+public abstract class ActionPane extends StackPane {
 
     private Text cue;
 

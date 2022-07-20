@@ -1,9 +1,6 @@
 package dvc.cabo;
 
-import java.util.ArrayList;
-
 import dvc.cabo.app.*;
-import dvc.cabo.logic.Card;
 import dvc.cabo.logic.CardPile;
 import dvc.cabo.logic.Game;
 import dvc.cabo.logic.Player;
@@ -20,6 +17,7 @@ public class Main extends Application {
 
     private Game game;
     private int numInitPeeks = 2;
+    private int temp = 0;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -81,49 +79,6 @@ public class Main extends Application {
 	// Rough logic for DRAWING ACTION CARDS:
 	// (to be incorporated into the above...)
 	//
-
-	//	if (drawn.getAction().equals("PEEK")) {
-	//	    Button actionButton = new Button("Click to " + drawn.getAction());
-	//	    actionButton.setOnMouseClicked(ee -> {
-	//		    ap.clear();
-	//		    cardsClicked = 0;
-	//		    for (CardView cv : hp2.getCardViews()) {
-	//			cv.setOnMouseClicked(eee -> {
-	//				if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
-	//				else {
-	//				    cv.setHidden(); // Unless check above implemented, could lead to bug.
-	//				    root.getChildren().remove(ap);
-	//				    ap.clear();
-	//				}
-	//				cardsClicked++;
-	//			    });
-	//		    }
-	//		    ap.setMid(hp2);
-	//		});
-	//	    ap.setMid(actionButton);
-	//	}
-
-	//	if (drawn.getAction().equals("SPY")) {
-	//	    Button actionButton = new Button("Click to " + drawn.getAction());
-	//	    actionButton.setOnMouseClicked(ee -> {
-	//		    ap.clear();
-	//		    cardsClicked = 0;
-	//		    HandPane victimHandPane = new HandPane(player2.getHand());
-	//		    for (CardView cv : victimHandPane.getCardViews()) {
-	//			cv.setOnMouseClicked(eee -> {
-	//				if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
-	//				else {
-	//				    cv.setHidden(); // Unless check above implemented, could lead to bug.
-	//				    root.getChildren().remove(ap);
-	//				    ap.clear();
-	//				}
-	//				cardsClicked++;
-	//			    });
-	//		    }
-	//		    ap.setMid(victimHandPane);
-	//		});
-	//	    ap.setMid(actionButton);
-	//	}
 
 	//	if (drawn.getAction().equals("SWAP")) {
 	//	    Button actionButton = new Button("Click to " + drawn.getAction());
@@ -192,6 +147,13 @@ public class Main extends Application {
 
 		DrawPane dp = new DrawPane(drawnCardView);
 		dp.setHandView(playerHand);
+		if (!isFromDiscard && !game.getDeck().getTopCard().getAction().equals("")) {
+		    // Drawn card will have an ACTION.
+		    dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
+		    dp.getActionButton().setOnMouseClicked(handleAction(tablePane, dp, game.getDeck().getTopCard().getAction(), playerHand));
+		    dp.enableActionButton();
+		}
+
 		root.getChildren().add(dp);
 
 		for (CardView cv : playerHand.getCardViews()) {
@@ -222,6 +184,43 @@ public class Main extends Application {
 		}
 	    }
 	};
+    }
+
+    private EventHandler<MouseEvent> handleAction(TablePane tablePane, DrawPane dp, String action, HandPane hp) {
+	return new EventHandler<MouseEvent>() {
+	    @Override
+	    public void handle(MouseEvent e) {
+		root.getChildren().remove(dp);
+
+		if (action.equals("PEEK")) {
+		    viewCardFromPlayer(game.getPlayers().get(0));
+		} else if (action.equals("SPY")) {
+		    viewCardFromPlayer(game.getPlayers().get(1));
+		}
+
+		game.useCard();
+
+		CardView discardView = new CardView(game.getDiscardPile().getTopCard());
+		discardView.setSeen();
+		tablePane.getDiscardView().setTopCardView(discardView);
+	    }
+	};
+    }
+
+    private void viewCardFromPlayer(Player player) {
+	PeekPane pp = new PeekPane();
+	HandPane hp = new HandPane(player.getHand());
+	pp.setHandView(hp);
+	root.getChildren().add(pp);
+
+	temp = 0;
+	for (CardView cv : hp.getCardViews()) {
+	    cv.setOnMouseClicked(e -> {
+		    if (temp < 0) root.getChildren().remove(pp);
+		    cv.setSeen();
+		    temp--;
+		});
+	}
     }
 
     public static void main(String[] args) { launch(args); }
