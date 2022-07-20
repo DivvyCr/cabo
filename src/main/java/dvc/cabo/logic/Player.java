@@ -1,4 +1,4 @@
-package dvc.cabo;
+package dvc.cabo.logic;
 
 import java.util.ArrayList;
 import java.util.Scanner;
