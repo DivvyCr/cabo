@@ -5,288 +5,223 @@ import java.util.ArrayList;
 import dvc.cabo.app.*;
 import dvc.cabo.logic.Card;
 import dvc.cabo.logic.CardPile;
+import dvc.cabo.logic.Game;
 import dvc.cabo.logic.Player;
 import javafx.application.Application;
-import javafx.geometry.Pos;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.layout.GridPane;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
-import javafx.scene.text.*;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private final static Font instructionFont = Font.font("Open Sans", FontWeight.BOLD, 24);
+    private StackPane root = new StackPane();
 
-    private ActionPane ap = new ActionPane();
-    private DeckView deckView;
-    private DeckView discardView;
-    private Text instruction = new Text();
-
-    private ArrayList<Player> players = new ArrayList<>();
-    private int currentPlayerIdx = 0;
-    private CardPile deck;
-    private CardPile discardPile;
-
-    private int cardsClicked;
-    private int cardIdx;
+    private Game game;
+    private int numInitPeeks = 2;
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
-	instruction.setFont(instructionFont);
-	instruction.setFill(Color.WHITE);
-
+    public void start(Stage stage) throws Exception {
 	//
 	// Set-up the game.
 	//
 
-	deck = new CardPile();
-	for (int val = 0; val <= 13; val++) {
-	    int numCards = (val == 0 || val == 13) ? 2 : 4;
-	    for (int i = 0; i < numCards; i++) deck.addCardToTop(new Card(val, true));
-	}
-	deck.shuffle();
+	game = new Game();
+	game.addPlayerByName("P1");
+	game.addPlayerByName("P2");
+	game.startGame();
 
-	discardPile = new CardPile();
-	discardPile.addCardToTop(deck.drawTopCard());
-	discardPile.getTopCard().flipCard();
-
-	Player player1 = new Player("Player 1");
-	players.add(player1);
-	Player player2 = new Player("Player 2");
-	players.add(player2);
-
-	for (Player p : players) {
-	    ArrayList<Card> pHand = new ArrayList<>();
-	    for (int i = 0; i < 4; i++) pHand.add(deck.drawTopCard());
-	    p.setHand(pHand);
-	}
-
-	// ---
-
-	StackPane r = new StackPane();
-
-	GridPane gp = new GridPane();
-	gp.setAlignment(Pos.CENTER);
-	gp.setVgap(80);
-	r.getChildren().add(gp);
-
-	deckView = new DeckView(new CardView(deck.getTopCard()));
-	gp.add(deckView, 0, 1);
-
-	discardView = new DeckView(new CardView(discardPile.getTopCard()));
-	gp.add(discardView, 2, 1);
-
-	HandPane rootHP1 = new HandPane(player1.getHand());
-	gp.add(rootHP1, 1, 2);
-	HandPane rootHP2 = new HandPane(player2.getHand());
-	gp.add(rootHP2, 1, 0);
+	Player player1 = game.getPlayers().get(0);
+	Player player2 = game.getPlayers().get(1);
 
 	//
-	// Rough logic for INITIAL PEEKS:
+	// Table set-up.
 	//
 
-	instruction.setText("Peek cards:");
-	ap.setTop(instruction);
+	TablePane tablePane = new TablePane(new HandPane(player1.getHand()),
+					    new HandPane(player2.getHand()),
+					    new DeckView(new CardView(game.getDeck().getTopCard())),
+					    new DeckView(new CardView(game.getDiscardPile().getTopCard())));
+	root.getChildren().add(tablePane);
 
-	cardsClicked = 0;
+	stage.setTitle("DV // Cabo.");
+	stage.setScene(new Scene(root, 2560, 1440));
+	stage.show();
 
-	HandPane hp1 = new HandPane(player1.getHand());
-	for (CardView cv : hp1.getCardViews()) {
+	//
+	// Logic for INITIAL PEEKS:
+	//
+
+	HandPane initPeeksHand = new HandPane(player1.getHand());
+	PeekPane initPeeksPane = new PeekPane();
+	initPeeksPane.setHandView(initPeeksHand);
+	for (CardView cv : initPeeksHand.getCardViews()) {
 	    cv.setOnMouseClicked(e -> {
 		    cv.setSeen();
-		    cardsClicked++;
+		    numInitPeeks--; // Any better way, without class field?
+		    if (numInitPeeks == 0) initPeeksPane.getCue().setText("Click to proceed.");
 		});
 	}
-
-	ap.setBot(hp1);
-
-	r.getChildren().add(ap);
-
-	ap.setOnMouseClicked(e -> {
-		if (cardsClicked == 2) {
-		    for (CardView cv : hp1.getCardViews()) cv.setOnMouseClicked(null);
-
-		    Button temp = new Button("Click to proceed.");
-		    temp.setOnMouseClicked(ee -> {
-			    r.getChildren().remove(ap);
-			    ap.clear();
-
-			    instruction.setText("DRAW a card from the deck or the discard pile.");
-			    instruction.setFill(Color.BLACK);
-			    gp.add(instruction, 1, 1);
-			});
-		    ap.setTop(temp);
-		}
+	initPeeksPane.setOnMouseClicked(e -> {
+		if (numInitPeeks < 0) root.getChildren().remove(initPeeksPane);
 	    });
+	initPeeksPane.getCue().setText("Peek two cards:");
+	root.getChildren().add(initPeeksPane);
 
 	//
-	// Rough logic for DRAWING CARDS:
+	// Logic for DRAWING CARDS:
 	//
 
-	HandPane hp2 = new HandPane(player1.getHand());
+	HandPane playerHand = new HandPane(player1.getHand());
+	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, tablePane, playerHand, player1));
+	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, tablePane, playerHand, player1));
 
-	deckView.setOnMouseClicked(e -> {
-		Card drawn = deck.drawTopCard();
+	//
+	// Rough logic for DRAWING ACTION CARDS:
+	// (to be incorporated into the above...)
+	//
 
-		for (CardView cv : hp2.getCardViews()) {
+	//	if (drawn.getAction().equals("PEEK")) {
+	//	    Button actionButton = new Button("Click to " + drawn.getAction());
+	//	    actionButton.setOnMouseClicked(ee -> {
+	//		    ap.clear();
+	//		    cardsClicked = 0;
+	//		    for (CardView cv : hp2.getCardViews()) {
+	//			cv.setOnMouseClicked(eee -> {
+	//				if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
+	//				else {
+	//				    cv.setHidden(); // Unless check above implemented, could lead to bug.
+	//				    root.getChildren().remove(ap);
+	//				    ap.clear();
+	//				}
+	//				cardsClicked++;
+	//			    });
+	//		    }
+	//		    ap.setMid(hp2);
+	//		});
+	//	    ap.setMid(actionButton);
+	//	}
+
+	//	if (drawn.getAction().equals("SPY")) {
+	//	    Button actionButton = new Button("Click to " + drawn.getAction());
+	//	    actionButton.setOnMouseClicked(ee -> {
+	//		    ap.clear();
+	//		    cardsClicked = 0;
+	//		    HandPane victimHandPane = new HandPane(player2.getHand());
+	//		    for (CardView cv : victimHandPane.getCardViews()) {
+	//			cv.setOnMouseClicked(eee -> {
+	//				if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
+	//				else {
+	//				    cv.setHidden(); // Unless check above implemented, could lead to bug.
+	//				    root.getChildren().remove(ap);
+	//				    ap.clear();
+	//				}
+	//				cardsClicked++;
+	//			    });
+	//		    }
+	//		    ap.setMid(victimHandPane);
+	//		});
+	//	    ap.setMid(actionButton);
+	//	}
+
+	//	if (drawn.getAction().equals("SWAP")) {
+	//	    Button actionButton = new Button("Click to " + drawn.getAction());
+	//	    actionButton.setOnMouseClicked(ee -> {
+	//		    ap.clear();
+	//		    cardsClicked = 0;
+	//		    HandPane victimHandPane = new HandPane(player2.getHand());
+
+	//		    instruction.setText("Pick opponent's card (ABOVE)");
+	//		    instruction.setFill(Color.WHITE);
+	//		    ap.setMid(instruction);
+
+	//		    for (CardView cv : victimHandPane.getCardViews()) {
+	//			cv.setOnMouseClicked(eee -> {
+	//				if (cardsClicked == 0) {
+	//				    cardIdx = victimHandPane.getCardViews().indexOf(cv);
+	//				    instruction.setText("Pick own card (BELOW)");
+	//				} else {
+	//				    root.getChildren().remove(ap);
+	//				    ap.clear();
+	//				}
+	//				cardsClicked++;
+	//			    });
+	//		    }
+
+	//		    for (CardView cv : hp2.getCardViews()) {
+	//			cv.setOnMouseClicked(eee -> {
+	//				if (cardsClicked == 1) {
+	//				    int ownIdx = hp2.getCardViews().indexOf(cv);
+
+	//				    Card buffer = player2.getHand().get(cardIdx);
+	//				    player2.getHand().set(cardIdx, player1.getHand().get(ownIdx));
+	//				    player1.getHand().set(ownIdx, buffer);
+
+	//				    HandPane newHP2 = new HandPane(player2.getHand());
+	//				    gp.add(newHP2, 1, 0);
+	//				    HandPane newHP1 = new HandPane(player1.getHand());
+	//				    gp.add(newHP1, 1, 2);
+
+	//				    root.getChildren().remove(ap);
+	//				    ap.clear();
+	//				}
+	//				cardsClicked++;
+	//			    });
+	//		    }
+
+	//		    ap.setTop(victimHandPane);
+	//		    ap.setBot(hp2);
+	//		});
+	//	    ap.setMid(actionButton);
+	//	}
+
+	//	ap.setOnMouseClicked(null);
+	//	root.getChildren().add(ap);
+	//     });
+
+    }
+
+    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, TablePane tablePane, HandPane playerHand, Player player1) {
+	return new EventHandler<MouseEvent>() {
+	    @Override
+	    public void handle(MouseEvent e) {
+		CardPile drawFrom = isFromDiscard ? game.getDiscardPile() : game.getDeck();
+		CardView drawnCardView = new CardView(drawFrom.getTopCard());
+		drawnCardView.setSeen();
+
+		DrawPane dp = new DrawPane(drawnCardView);
+		dp.setHandView(playerHand);
+		root.getChildren().add(dp);
+
+		for (CardView cv : playerHand.getCardViews()) {
 		    cv.setOnMouseClicked(ee -> {
-			    cardIdx = hp2.getCardViews().indexOf(cv);
+			    int cardIdx = playerHand.getCardViews().indexOf(cv);
 
-			    hp2.setCardViewByIdx(cardIdx, deckView.getTopCardView());
-			    gp.add(hp2, 1, 2);
+			    if (isFromDiscard) {
+				game.drawFromDiscard(cardIdx, player1);
 
-			    Card discard = player1.swapOwnCardForNewCard(cardIdx+1, drawn);
-			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
-			    discardPile.addCardToTop(discard);
-			    discardView.setTopCardView(new CardView(discard));
-			    deckView.setTopCardView(new CardView(deck.getTopCard()));
+				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDiscardView().getTopCardView());
+			    } else {
+				game.drawFromDeck(cardIdx, player1);
 
-			    player1.getHand().set(cardIdx, drawn);
+				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDeckView().getTopCardView());
+				tablePane.getDeckView().setTopCardView(new CardView(game.getDeck().getTopCard()));
 
-			    r.getChildren().remove(ap);
-			    ap.clear();
-			});
-		}
-
-		CardView drawnCardView = new CardView(drawn);
-		drawnCardView.setSeen(); // Does not affect real card state! (Just for viewing, as in real life.)
-		ap.setTop(drawnCardView);
-		ap.setBot(hp2);
-
-		if (drawn.getAction().equals("PEEK")) {
-		    Button actionButton = new Button("Click to " + drawn.getAction());
-		    actionButton.setOnMouseClicked(ee -> {
-			    ap.clear();
-			    cardsClicked = 0;
-			    for (CardView cv : hp2.getCardViews()) {
-				cv.setOnMouseClicked(eee -> {
-					if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
-					else {
-					    cv.setHidden(); // Unless check above implemented, could lead to bug.
-					    r.getChildren().remove(ap);
-					    ap.clear();
-					}
-					cardsClicked++;
-				    });
-			    }
-			    ap.setMid(hp2);
-			});
-		    ap.setMid(actionButton);
-		}
-
-		if (drawn.getAction().equals("SPY")) {
-		    Button actionButton = new Button("Click to " + drawn.getAction());
-		    actionButton.setOnMouseClicked(ee -> {
-			    ap.clear();
-			    cardsClicked = 0;
-			    HandPane victimHandPane = new HandPane(player2.getHand());
-			    for (CardView cv : victimHandPane.getCardViews()) {
-				cv.setOnMouseClicked(eee -> {
-					if (cardsClicked < 1) cv.setSeen(); // Check that card isn't already seen.
-					else {
-					    cv.setHidden(); // Unless check above implemented, could lead to bug.
-					    r.getChildren().remove(ap);
-					    ap.clear();
-					}
-					cardsClicked++;
-				    });
-			    }
-			    ap.setMid(victimHandPane);
-			});
-		    ap.setMid(actionButton);
-		}
-
-		if (drawn.getAction().equals("SWAP")) {
-		    Button actionButton = new Button("Click to " + drawn.getAction());
-		    actionButton.setOnMouseClicked(ee -> {
-			    ap.clear();
-			    cardsClicked = 0;
-			    HandPane victimHandPane = new HandPane(player2.getHand());
-
-			    instruction.setText("Pick opponent's card (ABOVE)");
-			    instruction.setFill(Color.WHITE);
-			    ap.setMid(instruction);
-
-			    for (CardView cv : victimHandPane.getCardViews()) {
-				cv.setOnMouseClicked(eee -> {
-					if (cardsClicked == 0) {
-					    cardIdx = victimHandPane.getCardViews().indexOf(cv);
-					    instruction.setText("Pick own card (BELOW)");
-					} else {
-					    r.getChildren().remove(ap);
-					    ap.clear();
-					}
-					cardsClicked++;
-				    });
+				drawnCardView.setHidden();
 			    }
 
-			    for (CardView cv : hp2.getCardViews()) {
-				cv.setOnMouseClicked(eee -> {
-					if (cardsClicked == 1) {
-					    int ownIdx = hp2.getCardViews().indexOf(cv);
+			    CardView discardView = new CardView(game.getDiscardPile().getTopCard());
+			    discardView.setSeen();
+			    tablePane.getDiscardView().setTopCardView(discardView);
 
-					    Card buffer = player2.getHand().get(cardIdx);
-					    player2.getHand().set(cardIdx, player1.getHand().get(ownIdx));
-					    player1.getHand().set(ownIdx, buffer);
+			    playerHand.setCardViewByIdx(cardIdx, drawnCardView);
 
-					    HandPane newHP2 = new HandPane(player2.getHand());
-					    gp.add(newHP2, 1, 0);
-					    HandPane newHP1 = new HandPane(player1.getHand());
-					    gp.add(newHP1, 1, 2);
-
-					    r.getChildren().remove(ap);
-					    ap.clear();
-					}
-					cardsClicked++;
-				    });
-			    }
-
-			    ap.setTop(victimHandPane);
-			    ap.setBot(hp2);
-			});
-		    ap.setMid(actionButton);
-		}
-
-		ap.setOnMouseClicked(null);
-		r.getChildren().add(ap);
-	    });
-
-	discardView.setOnMouseClicked(e -> {
-		Card drawn = discardPile.drawTopCard();
-
-		for (CardView cv : hp2.getCardViews()) {
-		    cv.setOnMouseClicked(ee -> {
-			    cardIdx = hp2.getCardViews().indexOf(cv);
-
-			    hp2.setCardViewByIdx(cardIdx, discardView.getTopCardView());
-			    gp.add(hp2, 1, 2);
-
-			    Card discard = player1.swapOwnCardForNewCard(cardIdx+1, drawn);
-			    if (discard.isFaceDown()) discard.flipCard(); // Discard pile cards are face-up.
-			    discardPile.addCardToTop(discard);
-			    discardView.setTopCardView(new CardView(discard));
-
-			    player1.getHand().set(cardIdx, drawn);
-
-			    r.getChildren().remove(ap);
-			    ap.clear();
+			    root.getChildren().remove(dp);
 			});
 		}
-
-		ap.setTop(new CardView(drawn));
-		ap.setBot(hp2);
-		ap.setOnMouseClicked(null);
-		r.getChildren().add(ap);
-	    });
-
-	// ---
-
-	primaryStage.setTitle("DV // Cabo.");
-	primaryStage.setScene(new Scene(r, 2560, 1440));
-	primaryStage.show();
+	    }
+	};
     }
 
     public static void main(String[] args) { launch(args); }
