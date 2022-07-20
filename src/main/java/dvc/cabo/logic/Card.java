@@ -1,4 +1,4 @@
-package dvc.cabo;
+package dvc.cabo.logic;
 
 public class Card {
     private static int cardCount = 0;

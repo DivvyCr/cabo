@@ -1,9 +1,9 @@
-package dvc.cabo;
+package dvc.cabo.logic;
 
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class Logic {
+public class Game {
     private Scanner scanner = new Scanner(System.in);
     private ArrayList<Player> players = new ArrayList<>();
     private boolean gameOver;
@@ -12,7 +12,7 @@ public class Logic {
     private CardPile deck;
     private CardPile discardPile;
 
-    public Logic() {
+    public Game() {
         System.out.println("Setting up a new game of CABO...");
         deck = createSortedDeck();
         deck.shuffle();

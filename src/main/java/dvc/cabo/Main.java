@@ -2,27 +2,23 @@ package dvc.cabo;
 
 import java.util.ArrayList;
 
+import dvc.cabo.app.*;
+import dvc.cabo.logic.Card;
+import dvc.cabo.logic.CardPile;
+import dvc.cabo.logic.Player;
 import javafx.application.Application;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.text.*;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private final static Font instructionFont = Font.font("helvetica", FontWeight.BOLD, 20);
+    private final static Font instructionFont = Font.font("Open Sans", FontWeight.BOLD, 24);
 
     private ActionPane ap = new ActionPane();
     private DeckView deckView;
@@ -36,7 +32,6 @@ public class Main extends Application {
 
     private int cardsClicked;
     private int cardIdx;
-    private int cardIdx2;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -231,11 +226,11 @@ public class Main extends Application {
 			    for (CardView cv : hp2.getCardViews()) {
 				cv.setOnMouseClicked(eee -> {
 					if (cardsClicked == 1) {
-					    cardIdx2 = hp2.getCardViews().indexOf(cv);
+					    int ownIdx = hp2.getCardViews().indexOf(cv);
 
 					    Card buffer = player2.getHand().get(cardIdx);
-					    player2.getHand().set(cardIdx, player1.getHand().get(cardIdx2));
-					    player1.getHand().set(cardIdx2, buffer);
+					    player2.getHand().set(cardIdx, player1.getHand().get(ownIdx));
+					    player1.getHand().set(ownIdx, buffer);
 
 					    HandPane newHP2 = new HandPane(player2.getHand());
 					    gp.add(newHP2, 1, 0);
@@ -295,126 +290,4 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) { launch(args); }
-}
-
-class CardView extends ImageView {
-
-    private final Card card;
-    private final Image SEEN;
-    private final Image HIDDEN;
-
-    public CardView(Card card) {
-	SEEN = new Image(getClass().getResourceAsStream(card.getValue() + ".jpeg"));
-	HIDDEN = new Image(getClass().getResourceAsStream("hidden.jpeg"));
-
-	setPreserveRatio(true);
-	setFitWidth(200);
-	if (card.isFaceDown()) setImage(HIDDEN);
-	else setImage(SEEN);
-
-	this.card = card;
-    }
-
-    public void setSeen() {
-	setImage(SEEN);
-    }
-
-    public void setHidden() {
-	setImage(HIDDEN);
-    }
-
-}
-
-class DeckView extends StackPane {
-
-    private CardView topCardView;
-
-    public DeckView(CardView topCardView) {
-	this.topCardView = topCardView;
-	getChildren().setAll(topCardView);
-    }
-
-    public CardView getTopCardView() {
-	return topCardView;
-    }
-
-    public void setTopCardView(CardView topCardView) {
-	this.topCardView = topCardView;
-	getChildren().setAll(topCardView);
-    }
-
-}
-
-class HandPane extends HBox {
-
-    private ArrayList<CardView> cardViews = new ArrayList<>();
-
-    public HandPane(ArrayList<Card> cards) {
-	setStyle("-fx-border-color: #DDD; -fx-border-width: 4px; -fx-border-radius: 6px");
-	setSpacing(10);
-	setPadding(new Insets(15));
-
-	for (Card card : cards) {
-	    CardView cv = new CardView(card);
-	    cardViews.add(cv);
-	    getChildren().add(cv);
-	}
-    }
-
-    public ArrayList<CardView> getCardViews() {
-	return cardViews;
-    }
-
-    public void setCardViewByIdx(int idx, CardView cardView) {
-	cardViews.set(idx, cardView);
-	getChildren().setAll(cardViews);
-    }
-
-}
-
-class ActionPane extends StackPane {
-
-    private final Rectangle DIM;
-
-    private GridPane nodes;
-    private Node topNode;
-    private Node midNode;
-    private Node botNode;
-
-    public ActionPane() {
-	DIM = new Rectangle(0, 0, 2560, 1440);
-	DIM.setFill(Color.BLACK);
-	DIM.setOpacity(0.8);
-
-	nodes = new GridPane();
-	nodes.setVgap(30);
-	nodes.setAlignment(Pos.CENTER);
-	nodes.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
-
-	getChildren().add(DIM);
-	getChildren().add(nodes);
-    }
-
-    public void setTop(Node node) {
-	this.topNode = node;
-	GridPane.setHalignment(topNode, HPos.CENTER);
-	nodes.add(topNode, 0, 0);
-    }
-
-    public void setMid(Node node) {
-	this.midNode = node;
-	GridPane.setHalignment(midNode, HPos.CENTER);
-	nodes.add(midNode, 0, 1);
-    }
-
-    public void setBot(Node node) {
-	this.botNode = node;
-	GridPane.setHalignment(botNode, HPos.CENTER);
-	nodes.add(botNode, 0, 2);
-    }
-
-    public void clear() {
-	nodes.getChildren().clear();
-    }
-
 }
