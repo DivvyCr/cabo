@@ -42,6 +42,8 @@ public class Game {
 
     public void drawFromDiscard(int cardIdx, Player player) { drawCard(discardPile.drawTopCard(), cardIdx, player); }
 
+    public void useCard() { discardPile.addCardToTop(deck.drawTopCard()); }
+
     public void startGame() {
 	System.out.println("Started a new game of CABO.");
 	scanner = new Scanner(System.in);
