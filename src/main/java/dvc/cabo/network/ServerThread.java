@@ -11,12 +11,12 @@ public class ServerThread extends Thread {
     private Socket socket = null;
     private PrintWriter out;
     private BufferedReader in;
-    private int id;
+    private boolean isHost;
+    private boolean isListening = false;
 
-    public ServerThread(Socket socket, int id) {
+    public ServerThread(Socket socket) {
 	super("ServerThread");
 	this.socket = socket;
-	this.id = id;
 
 	try {
 	    out = new PrintWriter(socket.getOutputStream(), true);
@@ -33,17 +33,38 @@ public class ServerThread extends Thread {
     }
 
     public void run() {
-
 	try {
-	    Server.threads.add(this);
+	    // Server.threads.add(this);
+	    // if (Server.threads.indexOf(this) == 0) isHost = true;
 
-	    out.println("Hello, world!");
+	    out.println();
+	    out.println("Connected!");
+	    out.flush();
 
-	    while (true) {
-		Server.broadcast(id, in.readLine());
+	    String s;
+	    while ((s = in.readLine()) != null) {
+		// if (isListening) {
+		if (s.toLowerCase().equals("stop")) {
+		    socket.close();
+		} else {
+		    System.out.println(s.toUpperCase());
+		    out.println(s.toUpperCase());
+		    out.flush();
+		}
+		// isListening = false;
+		// }
 	    }
-	} catch (IOException e) {
-	    e.printStackTrace();
+	} catch (Exception e1) {
+	    e1.printStackTrace();
+	} finally {
+	    Server.removeThread(this);
+	    try {
+		if (this.socket != null) socket.close();
+		if (in != null) in.close();
+		if (out != null) out.close();
+	    } catch (IOException e2) {
+		e2.printStackTrace();
+	    }
 	}
     }
 
@@ -59,8 +80,20 @@ public class ServerThread extends Thread {
 	return socket;
     }
 
-    public int getID() {
-	return id;
+    public boolean isHost() {
+	return isHost;
+    }
+
+    public void setHost(boolean isHost) {
+	this.isHost = isHost;
+    }
+
+    public boolean isListening() {
+	return isListening;
+    }
+
+    public void setListening(boolean isListening) {
+	this.isListening = isListening;
     }
 
 }
