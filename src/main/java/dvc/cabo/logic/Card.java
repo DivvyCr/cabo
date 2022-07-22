@@ -1,6 +1,8 @@
 package dvc.cabo.logic;
 
-public class Card {
+import java.io.Serializable;
+
+public class Card implements Serializable {
     private static int cardCount = 0;
     private int cardID;
     private int value;

@@ -41,11 +41,16 @@ public class Server {
 		newThread.start();
 	    }
 
-	    for (ServerThread st : threads) {
-		st.getOS().println("$GO!");
-	    }
+	    // Capacity reached, start the game:
+	    for (ServerThread st : threads) game.addPlayerByName(Integer.toString(threads.indexOf(st)));
+	    game.startGame();
+
+	    // Start games for clients:
+	    for (ServerThread st : threads) st.getOS().writeObject(new DataPacket("$GO:" + threads.indexOf(st), game));
+
 	} catch (IOException e) {
 	    System.err.println("Could not listen on port " + portNumber);
+	    e.printStackTrace();
 	    System.exit(-1);
 	}
 

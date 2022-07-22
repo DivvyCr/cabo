@@ -1,16 +1,21 @@
 package dvc.cabo;
 
 import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 
 import dvc.cabo.app.*;
 import dvc.cabo.logic.CardPile;
 import dvc.cabo.logic.Game;
 import dvc.cabo.logic.Player;
+import dvc.cabo.network.DataPacket;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
@@ -24,18 +29,19 @@ public class Main extends Application {
     private StackPane root = new StackPane();
 
     private Game game;
+    private Player player;
     private int numInitPeeks = 2;
     private int temp = 0;
 
     private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
 
     private void connect(String ipAddress, int portNumber) {
 	try {
 	    socket = new Socket(ipAddress, portNumber);
-	    out = new PrintWriter(socket.getOutputStream(), true);
-	    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	    out = new ObjectOutputStream(socket.getOutputStream());
+	    in = new ObjectInputStream(socket.getInputStream());
 	} catch (UnknownHostException e) {
 	    System.err.println("Unknown host: " + ipAddress);
 	    System.exit(1);
@@ -47,37 +53,52 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+	stage.setTitle("DV // Cabo.");
+	stage.show();
+
 	ConnectPane cp = new ConnectPane();
+	stage.setScene(new Scene(cp, 500, 500));
+
 	cp.getConnectButton().setOnMouseClicked(event -> {
 		connect("localhost", 9966);
 		// connect(cp.getIpField().getText(), Integer.parseInt(cp.getPortField().getText()));
 
 		try {
-		    String res;
-		    while ((res = in.readLine()) != null) {
-			if (res.startsWith("$GO")) {
+		    DataPacket res;
+		    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+			res = (DataPacket) in.readObject();
+			if (res.info.startsWith("$GO:")) {
 			    stage.setScene(new Scene(root, 2560, 1440));
+			    game = res.game;
+			    player = res.game.getPlayers().get(Integer.parseInt(res.info.substring(4)));
+			    temp();
 			    break;
 			}
 		    }
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) {
+		    System.out.println("Exception as control flow..");
+		    // e.printStackTrace();
+		} catch (ClassNotFoundException e1) {
+		    e1.printStackTrace();
+		}
 	    });
-
-	stage.setTitle("DV // Cabo.");
-	stage.setScene(new Scene(cp, 500, 500));
-	stage.show();
 
 	//
 	// Set-up the game.
 	//
 
-	game = new Game();
-	game.addPlayerByName("P1");
-	game.addPlayerByName("P2");
-	game.startGame();
+	// game = new Game();
+	// game.addPlayerByName("P1");
+	// game.addPlayerByName("P2");
+	// game.startGame();
 
-	Player player1 = game.getPlayers().get(0);
-	Player player2 = game.getPlayers().get(1);
+
+
+    }
+
+    private void temp() {
+	Player player1 = player;
+	Player player2 = game.getPlayers().indexOf(player) == 0 ? game.getPlayers().get(1) : game.getPlayers().get(0);
 
 	//
 	// Table set-up.
@@ -116,7 +137,6 @@ public class Main extends Application {
 	HandPane playerHand = new HandPane(player1.getHand());
 	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, tablePane, playerHand, player1));
 	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, tablePane, playerHand, player1));
-
     }
 
     private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, TablePane tablePane, HandPane playerHand, Player player1) {
