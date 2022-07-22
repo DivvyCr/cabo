@@ -1,5 +1,12 @@
 package dvc.cabo;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 import dvc.cabo.app.*;
 import dvc.cabo.logic.CardPile;
 import dvc.cabo.logic.Game;
@@ -20,8 +27,46 @@ public class Main extends Application {
     private int numInitPeeks = 2;
     private int temp = 0;
 
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+
+    private void connect(String ipAddress, int portNumber) {
+	try {
+	    socket = new Socket(ipAddress, portNumber);
+	    out = new PrintWriter(socket.getOutputStream(), true);
+	    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	} catch (UnknownHostException e) {
+	    System.err.println("Unknown host: " + ipAddress);
+	    System.exit(1);
+	} catch (IOException e) {
+	    System.err.println("Unable to connect to " + ipAddress);
+	    System.exit(1);
+	}
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
+	ConnectPane cp = new ConnectPane();
+	cp.getConnectButton().setOnMouseClicked(event -> {
+		connect("localhost", 9966);
+		// connect(cp.getIpField().getText(), Integer.parseInt(cp.getPortField().getText()));
+
+		try {
+		    String res;
+		    while ((res = in.readLine()) != null) {
+			if (res.startsWith("$GO")) {
+			    stage.setScene(new Scene(root, 2560, 1440));
+			    break;
+			}
+		    }
+		} catch (IOException e) { e.printStackTrace(); }
+	    });
+
+	stage.setTitle("DV // Cabo.");
+	stage.setScene(new Scene(cp, 500, 500));
+	stage.show();
+
 	//
 	// Set-up the game.
 	//
@@ -43,10 +88,6 @@ public class Main extends Application {
 					    new DeckView(new CardView(game.getDeck().getTopCard())),
 					    new DeckView(new CardView(game.getDiscardPile().getTopCard())));
 	root.getChildren().add(tablePane);
-
-	stage.setTitle("DV // Cabo.");
-	stage.setScene(new Scene(root, 2560, 1440));
-	stage.show();
 
 	//
 	// Logic for INITIAL PEEKS:
