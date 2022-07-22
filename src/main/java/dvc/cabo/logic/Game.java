@@ -1,10 +1,10 @@
 package dvc.cabo.logic;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class Game {
-    private Scanner scanner = new Scanner(System.in);
+public class Game implements Serializable {
     private ArrayList<Player> players = new ArrayList<>();
     private boolean gameOver;
     private int currentTurn;
@@ -46,7 +46,6 @@ public class Game {
 
     public void startGame() {
 	System.out.println("Started a new game of CABO.");
-	scanner = new Scanner(System.in);
 
 	for (Player player : players) dealCards(player);
 
@@ -79,7 +78,7 @@ public class Game {
 		    "> 1. DRAW from the deck.\n" +
 		    "> 2. PICK ( " + discardPile.getTopCard().toString() + " ) from the discard pile.");
 
-	    int action = scanner.nextInt();
+	    int action = 0; // scanner.nextInt();
 	    if (action == 1) {
 		drawFromDeck(currentPlayer);
 	    } else if (action == 2) {
@@ -151,7 +150,7 @@ public class Game {
     private int letPlayerChooseNumberBetween(int lowerBound, int upperBound) {
 	while(true) {
 	    try {
-		int number = scanner.nextInt();
+		int number = 0; // scanner.nextInt();
 		if (number >= lowerBound && number <= upperBound) {
 		    return number;
 		}
@@ -168,7 +167,7 @@ public class Game {
 
 	boolean successful = false;
 	while (!successful) {
-	    int action = scanner.nextInt();
+	    int action = 0; // scanner.nextInt();
 	    switch (action) {
 		case 1:
 		    swapPlayerCardAndDiscardOldCard(player, card);
@@ -188,13 +187,13 @@ public class Game {
     private void useCardAction(Player player, Card card) {
 	switch (card.getAction().toUpperCase()) {
 	    case "PEEK":
-		player.peekCard();
+		// player.peekCard();
 		break;
 	    case "SPY":
-		player.spyCardFrom(players);
+		// player.spyCardFrom(players);
 		break;
 	    case "SWAP":
-		player.swapCardsWith(players);
+		// player.swapCardsWith(players);
 		break;
 	    default:
 		System.out.println("No action selected... Turn skipped.");
@@ -202,7 +201,7 @@ public class Game {
 	}
 
 	System.out.println("When done, type DONE.");
-	while (!scanner.next().toLowerCase().equals("done")) {}
+	// while (!scanner.next().toLowerCase().equals("done")) {}
     }
 
     public CardPile createSortedDeck() {
@@ -245,7 +244,7 @@ public class Game {
     private boolean letPlayerChooseYorN() {
 	System.out.println("Type Y for yes or N for no.");
 	while (true) {
-	    String userInput = scanner.next();
+	    String userInput = "y"; // scanner.next();
 	    if (Pattern.matches("[ynYN]", userInput)) {
 		return userInput.equals("y");
 	    } else {
@@ -259,7 +258,7 @@ public class Game {
 	System.out.println("Type 1 through " + playerHandSize + ".");
 
 	while (true) {
-	    String userInput = scanner.next();
+	    String userInput = "1"; // scanner.next();
 	    try {
 		int intUserInput = Integer.parseInt(userInput);
 		if (intUserInput > 0 && intUserInput <= player.getHandSize()) {

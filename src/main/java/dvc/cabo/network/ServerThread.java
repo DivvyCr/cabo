@@ -1,26 +1,25 @@
 package dvc.cabo.network;
 
-import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class ServerThread extends Thread {
 
     private Socket socket = null;
-    private PrintWriter out;
-    private BufferedReader in;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
     private boolean isHost;
-    private boolean isListening = false;
 
     public ServerThread(Socket socket) {
 	super("ServerThread");
 	this.socket = socket;
 
 	try {
-	    out = new PrintWriter(socket.getOutputStream(), true);
-	    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	    out = new ObjectOutputStream(socket.getOutputStream());
+	    in = new ObjectInputStream(socket.getInputStream());
 	} catch (IOException e1) {
 	    try {
 		if (this.socket != null) socket.close();
@@ -37,25 +36,23 @@ public class ServerThread extends Thread {
 	    // Server.threads.add(this);
 	    // if (Server.threads.indexOf(this) == 0) isHost = true;
 
-	    out.println();
-	    out.println("Connected!");
+	    out.writeObject(new DataPacket("Connected.", null));
 	    out.flush();
 
-	    String s;
-	    while ((s = in.readLine()) != null) {
-		// if (isListening) {
-		if (s.toLowerCase().equals("stop")) {
-		    socket.close();
-		} else {
-		    System.out.println(s.toUpperCase());
-		    out.println(s.toUpperCase());
-		    out.flush();
+	    DataPacket s;
+	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+		s = (DataPacket) in.readObject();
+		if (s.info != null) {
+		    System.out.println(s.info);
 		}
-		// isListening = false;
-		// }
+		out.writeObject(out);
+		out.flush();
 	    }
-	} catch (Exception e1) {
-	    e1.printStackTrace();
+	} catch (EOFException e1) {
+	    System.out.println("Exception as control flow..");
+	    // e1.printStackTrace();
+	} catch (Exception e2) {
+	    e2.printStackTrace();
 	} finally {
 	    Server.removeThread(this);
 	    try {
@@ -68,11 +65,11 @@ public class ServerThread extends Thread {
 	}
     }
 
-    public PrintWriter getOS() {
+    public ObjectOutputStream getOS() {
 	return out;
     }
 
-    public BufferedReader getIS() {
+    public ObjectInputStream getIS() {
 	return in;
     }
 
@@ -86,14 +83,6 @@ public class ServerThread extends Thread {
 
     public void setHost(boolean isHost) {
 	this.isHost = isHost;
-    }
-
-    public boolean isListening() {
-	return isListening;
-    }
-
-    public void setListening(boolean isListening) {
-	this.isListening = isListening;
     }
 
 }
