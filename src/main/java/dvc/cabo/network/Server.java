@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 import dvc.cabo.logic.Game;
+import dvc.cabo.logic.Player;
 
 public class Server {
 
@@ -33,7 +34,7 @@ public class Server {
 	try {
 	    serverSocket = new ServerSocket(portNumber);
 
-	    while (threads.size() < 2) {
+	    while (threads.size() < 4) {
 		Socket acceptedSocket = serverSocket.accept();
 		System.out.println("   Connected: " + acceptedSocket.getInetAddress());
 		ServerThread newThread = new ServerThread(acceptedSocket);
@@ -47,9 +48,9 @@ public class Server {
 	    game.startGame();
 
 	    // Start games for clients:
-	    activeThreadIdx = 0;
+	    activeThreadIdx = -1;
 	    for (ServerThread st : threads) st.getOS().writeObject(new DataPacket("$GO:" + threads.indexOf(st), game));
-
+	    next(game);
 	} catch (IOException e) {
 	    System.err.println("Could not listen on port " + portNumber);
 	    e.printStackTrace();

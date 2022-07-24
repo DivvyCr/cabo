@@ -4,18 +4,18 @@ import java.util.ArrayList;
 
 import dvc.cabo.logic.Card;
 import javafx.geometry.Insets;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.layout.Region;
 
-public class HandPane extends HBox {
-
+public class HandPaneV extends VBox {
+    // Virtually a DUPLICATE of HandPaneH...
     private ArrayList<CardView> cardViews = new ArrayList<>();
 
-    public HandPane() {
+    public HandPaneV() {
 	this(new ArrayList<Card>());
     }
 
-    public HandPane(ArrayList<Card> cards) {
+    public HandPaneV(ArrayList<Card> cards) {
 	setStyle("-fx-border-color: #DDD; -fx-border-width: 4px; -fx-border-radius: 6px");
 	setSpacing(10);
 	setPadding(new Insets(15));

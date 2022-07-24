@@ -11,7 +11,7 @@ public class DrawPane extends ActionPane {
 
     private CardView cardView;
     private Button actionButton;
-    private HandPane handPane;
+    private HandPaneH handPane;
 
     public DrawPane(CardView drawnCardView) {
 	paneLayout = new GridPane();
@@ -28,7 +28,7 @@ public class DrawPane extends ActionPane {
 	actionButton = new Button();
 	GridPane.setHalignment(actionButton, HPos.CENTER);
 
-	handPane = new HandPane();
+	handPane = new HandPaneH();
 	GridPane.setHalignment(handPane, HPos.CENTER);
 	paneLayout.add(handPane, 0, 3);
 
@@ -45,11 +45,11 @@ public class DrawPane extends ActionPane {
 	paneLayout.add(cardView, 0, 1);
     }
 
-    public HandPane getHandView() {
+    public HandPaneH getHandView() {
 	return handPane;
     }
 
-    public void setHandView(HandPane handPane) {
+    public void setHandView(HandPaneH handPane) {
 	paneLayout.getChildren().remove(this.handPane);
 	this.handPane = handPane;
 	paneLayout.add(handPane, 0, 3);

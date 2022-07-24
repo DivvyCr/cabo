@@ -45,7 +45,7 @@ public class Card implements Serializable {
 		s = s + " (" + this.action + ")";
 	    }
 	} else {
-	    s = "???";
+	    s = "??? [" + String.valueOf(this.value) + "]";
 	}
 	return s;
     }
