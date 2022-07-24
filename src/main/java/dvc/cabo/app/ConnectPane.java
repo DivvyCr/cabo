@@ -19,13 +19,13 @@ public class ConnectPane extends VBox {
 
 	HBox ipBox = new HBox();
 	Label ipLabel = new Label("IP: ");
-	ipField = new TextField();
+	ipField = new TextField("localhost");
 	ipBox.getChildren().setAll(ipLabel, ipField);
 	ipBox.setAlignment(Pos.CENTER);
 
 	HBox portBox = new HBox();
 	Label portLabel = new Label("PORT: ");
-	portField = new TextField();
+	portField = new TextField("9966");
 	portBox.getChildren().setAll(portLabel, portField);
 	portBox.setAlignment(Pos.CENTER);
 

@@ -15,9 +15,9 @@ public class Player implements Serializable {
 	swapOwnCardForNewCard(ownCardIdx, opponent.swapOwnCardForNewCard(oppCardIdx, hand.get(ownCardIdx-1)));
     }
 
-    public Card swapOwnCardForNewCard(int ownCardPosition, Card newCard) {
-	Card buffer = hand.get(ownCardPosition-1);
-	hand.set(ownCardPosition-1, newCard);
+    public Card swapOwnCardForNewCard(int ownCardIdx, Card newCard) {
+	Card buffer = hand.get(ownCardIdx);
+	hand.set(ownCardIdx, newCard);
 	return buffer;
     }
 

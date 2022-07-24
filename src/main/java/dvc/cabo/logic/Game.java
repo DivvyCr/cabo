@@ -31,7 +31,7 @@ public class Game implements Serializable {
     public void addPlayerByName(String name) { players.add(new Player(name)); }
 
     private void drawCard(Card drawn, int cardIdx, Player player) {
-	Card discard = player.swapOwnCardForNewCard(cardIdx+1, drawn);
+	Card discard = player.swapOwnCardForNewCard(cardIdx, drawn);
 	if (discard.isFaceDown()) discard.flipCard(); // All discarded cards are face-up.
 	discardPile.addCardToTop(discard);
 	player.getHand().set(cardIdx, drawn);
