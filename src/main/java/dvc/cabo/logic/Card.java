@@ -3,16 +3,11 @@ package dvc.cabo.logic;
 import java.io.Serializable;
 
 public class Card implements Serializable {
-    private static int cardCount = 0;
-    private int cardID;
     private int value;
     private String action = "";
     private boolean isFaceDown;
 
     public Card(int value, boolean isFaceDown) {
-	cardCount++;
-	cardID = cardCount * 508721;
-
 	this.value = value;
 	this.isFaceDown = isFaceDown;
 
@@ -25,10 +20,6 @@ public class Card implements Serializable {
 	if (this.value == 7 || this.value == 8) {
 	    this.action = "PEEK";
 	}
-    }
-
-    public int getID() {
-	return cardID;
     }
 
     public void flipCard() {

@@ -26,29 +26,8 @@ public class CardPile implements Serializable {
 	return topCard;
     }
 
-    public Card drawBottomCard() {
-	Card bottomCard;
-	if (isFinished()) {
-	    bottomCard = cards.get(0);
-	    cards.remove(0);
-	} else {
-	    bottomCard = null;
-	}
-	return bottomCard;
-    }
-
-    public void addMultipleCardsOfEqualValue(int value, boolean isFaceDown, int amount) {
-	for (int amountLeft = amount; amountLeft > 0; amountLeft--) {
-	    addCardToTop(new Card(value, isFaceDown));
-	}
-    }
-
     public void addCardToTop(Card newCard) {
 	cards.add(newCard);
-    }
-
-    public void addCardToBottom(Card newCard) {
-	cards.add(0, newCard);
     }
 
     public void shuffle() {
@@ -59,12 +38,4 @@ public class CardPile implements Serializable {
 	return cards.size() != 0;
     }
 
-    public void print() {
-	for (Card c : cards) {
-	    if (c.isFaceDown()) {
-		c.flipCard();
-	    }
-	    System.out.println(c + ": " + c.getID());
-	}
-    }
 }
