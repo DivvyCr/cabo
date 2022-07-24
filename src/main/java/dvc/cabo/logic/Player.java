@@ -21,25 +21,6 @@ public class Player implements Serializable {
 	return buffer;
     }
 
-    private void printPlayerCardInPosition(Player player, Card card, int cardPosition) {
-	if (card.isFaceDown()) {
-	    card.flipCard();
-	    System.out.println(" > " + player.getName() + "'s card in position " + cardPosition + " is " + card.toString());
-	    card.flipCard();
-	} else {
-	    System.out.println("cabo.Card is visible.");
-	}
-    }
-
-    public void printHand() {
-	System.out.print("\t");
-	for (Card card : hand) {
-	    System.out.print(card);
-	    System.out.print("|");
-	}
-	System.out.println();
-    }
-
     public void setHand(ArrayList<Card> hand) {
 	this.hand = hand;
     }

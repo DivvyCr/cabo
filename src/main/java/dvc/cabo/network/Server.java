@@ -13,6 +13,7 @@ public class Server {
     public static ArrayList<ServerThread> threads;
 
     public static Game game;
+    private static int activeThreadIdx;
 
     public static void main(String[] args) throws IOException {
 
@@ -46,6 +47,7 @@ public class Server {
 	    game.startGame();
 
 	    // Start games for clients:
+	    activeThreadIdx = 0;
 	    for (ServerThread st : threads) st.getOS().writeObject(new DataPacket("$GO:" + threads.indexOf(st), game));
 
 	} catch (IOException e) {
@@ -54,6 +56,14 @@ public class Server {
 	    System.exit(-1);
 	}
 
+    }
+
+    public static void next(Game newGame) {
+	game = newGame; // FULLY TRUST CLIENT, for no reason.. (ie. needs to change)
+	activeThreadIdx = (activeThreadIdx + 1) % threads.size();
+	try {
+	    threads.get(activeThreadIdx).getOS().writeObject(new DataPacket("$NEXT", game));
+	} catch (IOException e) { e.printStackTrace(); }
     }
 
     public static boolean addPlayer(String name) {

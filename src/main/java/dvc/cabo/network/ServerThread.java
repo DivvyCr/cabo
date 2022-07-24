@@ -42,11 +42,9 @@ public class ServerThread extends Thread {
 	    DataPacket s;
 	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
 		s = (DataPacket) in.readObject();
-		if (s.info != null) {
-		    System.out.println(s.info);
+		if (s.info.startsWith("$DONE")) {
+		    Server.next(s.game);
 		}
-		out.writeObject(out);
-		out.flush();
 	    }
 	} catch (EOFException e1) {
 	    System.out.println("Exception as control flow..");

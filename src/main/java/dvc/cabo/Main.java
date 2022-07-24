@@ -1,15 +1,10 @@
 package dvc.cabo;
 
-import java.io.BufferedReader;
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 
 import dvc.cabo.app.*;
 import dvc.cabo.logic.CardPile;
@@ -17,6 +12,7 @@ import dvc.cabo.logic.Game;
 import dvc.cabo.logic.Player;
 import dvc.cabo.network.DataPacket;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.input.MouseEvent;
@@ -27,8 +23,10 @@ public class Main extends Application {
 
     private static final TurnEndEvent END_EVENT = new TurnEndEvent();
     private StackPane root = new StackPane();
+    private TablePane tablePane;
 
     private Game game;
+    private int myIdx;
     private Player player;
     private int numInitPeeks = 2;
     private int temp = 0;
@@ -70,11 +68,12 @@ public class Main extends Application {
 			if (res.info.startsWith("$GO:")) {
 			    stage.setScene(new Scene(root, 2560, 1440));
 			    game = res.game;
-			    player = res.game.getPlayers().get(Integer.parseInt(res.info.substring(4)));
-			    temp();
+			    myIdx = Integer.parseInt(res.info.substring(4));
 			    break;
 			}
 		    }
+		    setup();
+		    initialPeeks();
 		} catch (IOException e) {
 		    System.out.println("Exception as control flow..");
 		    // e.printStackTrace();
@@ -82,39 +81,10 @@ public class Main extends Application {
 		    e1.printStackTrace();
 		}
 	    });
-
-	//
-	// Set-up the game.
-	//
-
-	// game = new Game();
-	// game.addPlayerByName("P1");
-	// game.addPlayerByName("P2");
-	// game.startGame();
-
-
-
     }
 
-    private void temp() {
-	Player player1 = player;
-	Player player2 = game.getPlayers().indexOf(player) == 0 ? game.getPlayers().get(1) : game.getPlayers().get(0);
-
-	//
-	// Table set-up.
-	//
-
-	TablePane tablePane = new TablePane(new HandPane(player1.getHand()),
-					    new HandPane(player2.getHand()),
-					    new DeckView(new CardView(game.getDeck().getTopCard())),
-					    new DeckView(new CardView(game.getDiscardPile().getTopCard())));
-	root.getChildren().add(tablePane);
-
-	//
-	// Logic for INITIAL PEEKS:
-	//
-
-	HandPane initPeeksHand = new HandPane(player1.getHand());
+    private void initialPeeks() {
+	HandPane initPeeksHand = new HandPane(player.getHand());
 	PeekPane initPeeksPane = new PeekPane();
 	initPeeksPane.setHandView(initPeeksHand);
 	for (CardView cv : initPeeksHand.getCardViews()) {
@@ -130,16 +100,55 @@ public class Main extends Application {
 	initPeeksPane.getCue().setText("Peek two cards:");
 	root.getChildren().add(initPeeksPane);
 
-	//
-	// Logic for DRAWING CARDS:
-	//
-
-	HandPane playerHand = new HandPane(player1.getHand());
-	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, tablePane, playerHand, player1));
-	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, tablePane, playerHand, player1));
+	if (game.getPlayers().indexOf(player) == 0) playTurn();
+	else {
+	    new Thread() {
+		public void run() {
+		    try {
+			DataPacket res;
+			while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+			    res = (DataPacket) in.readObject();
+			    if (res.info.startsWith("$NEXT")) {
+				game = res.game;
+				break;
+			    }
+			}
+			Platform.runLater(() -> {
+			    setup();
+			    playTurn();
+			});
+		    } catch (IOException ex) {
+			System.out.println("Exception as control flow..");
+			// e.printStackTrace();
+		    } catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		    }
+		}
+	    }.start();
+	}
     }
 
-    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, TablePane tablePane, HandPane playerHand, Player player1) {
+    private void setup() {
+	player = game.getPlayers().get(myIdx);
+	Player player2 = myIdx == 0 ? game.getPlayers().get(1) : game.getPlayers().get(0);
+
+	CardView discardView = new CardView(game.getDiscardPile().getTopCard());
+	discardView.setSeen();
+
+	tablePane = new TablePane(new HandPane(player.getHand()),
+				  new HandPane(player2.getHand()),
+				  new DeckView(new CardView(game.getDeck().getTopCard())),
+				  new DeckView(discardView));
+	root.getChildren().add(tablePane);
+    }
+
+    private void playTurn() {
+	HandPane playerHand = new HandPane(player.getHand());
+	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, playerHand, player));
+	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, playerHand, player));
+    }
+
+    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, HandPane playerHand, Player player1) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
@@ -152,7 +161,7 @@ public class Main extends Application {
 		if (!isFromDiscard && !game.getDeck().getTopCard().getAction().equals("")) {
 		    // Drawn card will have an ACTION.
 		    dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
-		    dp.getActionButton().setOnMouseClicked(handleAction(tablePane, dp, game.getDeck().getTopCard().getAction(), playerHand));
+		    dp.getActionButton().setOnMouseClicked(handleAction(dp, game.getDeck().getTopCard().getAction(), playerHand));
 		    dp.enableActionButton();
 		}
 
@@ -163,6 +172,10 @@ public class Main extends Application {
 			CardView discardView = new CardView(game.getDiscardPile().getTopCard());
 			discardView.setSeen();
 			tablePane.getDiscardView().setTopCardView(discardView);
+
+			tablePane.getDeckView().setOnMouseClicked(null);
+			tablePane.getDiscardView().setOnMouseClicked(null);
+			endTurnAndWait();
 		});
 
 		for (CardView cv : playerHand.getCardViews()) {
@@ -191,12 +204,41 @@ public class Main extends Application {
 	};
     }
 
-    private EventHandler<MouseEvent> handleAction(TablePane tablePane, DrawPane dp, String action, HandPane hp) {
+    private void endTurnAndWait() {
+	Thread t = new Thread() {
+	    public void run() {
+		try {
+		    out.writeObject(new DataPacket("$DONE", game));
+
+		    DataPacket res;
+		    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+			res = (DataPacket) in.readObject();
+			if (res.info.startsWith("$NEXT")) {
+			    game = res.game;
+			    break;
+			}
+		    }
+		    Platform.runLater(() -> {
+			    setup();
+			    playTurn();
+			});
+		} catch (IOException ex) {
+		    System.out.println("Exception as control flow..");
+		    // e.printStackTrace();
+		} catch (ClassNotFoundException e1) {
+		    e1.printStackTrace();
+		}
+	    }
+	};
+	t.setDaemon(true);
+	t.start();
+    }
+
+    private EventHandler<MouseEvent> handleAction(DrawPane dp, String action, HandPane hp) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
 		game.useCard();
-		dp.fireEvent(END_EVENT);
 
 		if (action.equals("SWAP")) {
 		    HandPane ownHP = new HandPane(game.getPlayers().get(0).getHand());
@@ -226,13 +268,16 @@ public class Main extends Application {
 				    tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
 
 				    root.getChildren().remove(sp);
+				    dp.fireEvent(END_EVENT);
 				}
 			    });
 		    }
 		} else if (action.equals("PEEK")) {
 		    viewCardFromPlayer(game.getPlayers().get(0));
+		    dp.fireEvent(END_EVENT);
 		} else if (action.equals("SPY")) {
 		    viewCardFromPlayer(game.getPlayers().get(1));
+		    dp.fireEvent(END_EVENT);
 		}
 	    }
 	};
