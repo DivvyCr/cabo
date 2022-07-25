@@ -86,8 +86,16 @@ public class TablePane extends BorderPane {
 	return playerHand;
     }
 
+    public HandPaneV getLeftHand() {
+	return leftHand;
+    }
+
     public HandPaneH getTopHand() {
 	return topHand;
+    }
+
+    public HandPaneV getRightHand() {
+	return rightHand;
     }
 
     public DeckView getDeckView() {
