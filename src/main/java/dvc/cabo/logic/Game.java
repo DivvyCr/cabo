@@ -5,11 +5,10 @@ import java.util.*;
 
 public class Game implements Serializable {
     private ArrayList<Player> players = new ArrayList<>();
-    private boolean gameOver;
-    private int currentTurn;
-
     private CardPile deck;
     private CardPile discardPile;
+
+    private boolean caboCalled = false;
 
     public Game() {
 	System.out.println("Setting up a new game of CABO...");
@@ -41,14 +40,21 @@ public class Game implements Serializable {
 
     public void drawFromDiscard(int cardIdx, Player player) { drawCard(discardPile.drawTopCard(), cardIdx, player); }
 
-    public void useCard() { discardPile.addCardToTop(deck.drawTopCard()); }
+    public void callCabo() {
+	useCard();
+	caboCalled = true;
+    }
+
+    public void useCard() {
+	Card discard = deck.drawTopCard();
+	if (discard.isFaceDown()) discard.flipCard(); // All discarded cards are face-up.
+	discardPile.addCardToTop(discard);
+    }
 
     public void startGame() {
 	System.out.println("Started a new game of CABO.");
 
 	for (Player player : players) dealCards(player);
-
-	currentTurn = 0;
     }
 
     public CardPile createSortedDeck() {
@@ -66,5 +72,9 @@ public class Game implements Serializable {
 	    hand.add(deck.drawTopCard());
 	}
 	player.setHand(hand);
+    }
+
+    public boolean isCaboCalled() {
+	return caboCalled;
     }
 }

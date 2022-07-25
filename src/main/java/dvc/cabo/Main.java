@@ -173,6 +173,15 @@ public class Main extends Application {
 
 		DrawPane dp = new DrawPane(drawnCardView);
 		dp.setHandView(playerHand);
+		dp.getDiscardButton().setOnMouseClicked(ee -> {
+			game.useCard();
+			dp.fireEvent(END_EVENT);
+		    });
+		// dp.getCaboButton().setOnMouseClicked(ee -> {
+		//	game.callCabo();
+		//	dp.fireEvent(END_EVENT);
+		//     });
+
 		if (!isFromDiscard && !game.getDeck().getTopCard().getAction().equals("")) {
 		    // Drawn card will have an ACTION.
 		    dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
