@@ -63,4 +63,8 @@ public class DrawPane extends ActionPane {
 	return actionButton;
     }
 
+    public GridPane getPaneLayout() {
+	return paneLayout;
+    }
+
 }

@@ -6,7 +6,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 import dvc.cabo.logic.Game;
-import dvc.cabo.logic.Player;
 
 public class Server {
 
@@ -34,7 +33,7 @@ public class Server {
 	try {
 	    serverSocket = new ServerSocket(portNumber);
 
-	    while (threads.size() < 4) {
+	    while (threads.size() < 3) {
 		Socket acceptedSocket = serverSocket.accept();
 		System.out.println("   Connected: " + acceptedSocket.getInetAddress());
 		ServerThread newThread = new ServerThread(acceptedSocket);

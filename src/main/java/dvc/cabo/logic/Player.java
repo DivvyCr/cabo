@@ -12,7 +12,7 @@ public class Player implements Serializable {
     }
 
     public void swapCardsWithP(Player opponent, int ownCardIdx, int oppCardIdx) {
-	swapOwnCardForNewCard(ownCardIdx, opponent.swapOwnCardForNewCard(oppCardIdx, hand.get(ownCardIdx-1)));
+	swapOwnCardForNewCard(ownCardIdx, opponent.swapOwnCardForNewCard(oppCardIdx, hand.get(ownCardIdx)));
     }
 
     public Card swapOwnCardForNewCard(int ownCardIdx, Card newCard) {

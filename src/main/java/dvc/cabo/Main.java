@@ -16,7 +16,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -29,6 +31,8 @@ public class Main extends Application {
     private Game game;
     private int myIdx;
     private Player player;
+    private ArrayList<Player> opponents;
+
     private int numInitPeeks = 2;
     private int temp = 0;
 
@@ -140,11 +144,11 @@ public class Main extends Application {
 
     private void setup() {
 	player = game.getPlayers().get(myIdx);
-	
+
 	CardView discardView = new CardView(game.getDiscardPile().getTopCard());
 	discardView.setSeen();
 
-	ArrayList<Player> opponents = (ArrayList<Player>) game.getPlayers().clone();
+	opponents = (ArrayList<Player>) game.getPlayers().clone();
 	opponents.remove(myIdx);
 
 	tablePane = new TablePane(player, opponents,
@@ -245,51 +249,84 @@ public class Main extends Application {
 	t.start();
     }
 
+    private void performAction(DrawPane dp, String action, Player player, Player chosenOpponent, String tpSide) {
+	if (action.equals("SWAP")) {
+	    HandPaneH ownHP = new HandPaneH(player.getHand());
+	    HandPaneH oppHP = new HandPaneH(chosenOpponent.getHand());
+
+	    SwapPane sp = new SwapPane(oppHP, ownHP);
+	    root.getChildren().add(sp);
+
+	    temp = -1;
+	    sp.getCue().setText("Select opponent's card (ABOVE)");
+	    for (CardView oppCV : oppHP.getCardViews()) {
+		oppCV.setOnMouseClicked(ee -> {
+			if (temp < 0) {
+			    temp = oppHP.getCardViews().indexOf(oppCV);
+			    sp.getCue().setText("Select own card (BELOW)");
+			}
+		    });
+	    }
+	    for (CardView ownCV : ownHP.getCardViews()) {
+		ownCV.setOnMouseClicked(ee -> {
+			if (temp >= 0) {
+			    int ownIdx = ownHP.getCardViews().indexOf(ownCV);
+			    player.swapCardsWithP(chosenOpponent, ownIdx, temp);
+
+			    CardView oppCV = oppHP.getCardViews().get(temp);
+			    if (tpSide.equals("L")) tablePane.getLeftHand().setCardViewByIdx(temp, ownCV);
+			    else if (tpSide.equals("T")) tablePane.getTopHand().setCardViewByIdx(temp, ownCV);
+			    else if (tpSide.equals("R")) tablePane.getRightHand().setCardViewByIdx(temp, ownCV);
+			    tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
+
+			    root.getChildren().remove(sp);
+			    dp.fireEvent(END_EVENT);
+			}
+		    });
+	    }
+	} else if (action.equals("SPY")) {
+	    viewCardFromPlayer(chosenOpponent);
+	    dp.fireEvent(END_EVENT);
+	}
+    }
+
     private EventHandler<MouseEvent> handleAction(DrawPane dp, String action, HandPaneH hp) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
 		game.useCard();
 
-		if (action.equals("SWAP")) {
-		    HandPaneH ownHP = new HandPaneH(player.getHand());
-		    Player opp = myIdx == 0 ? game.getPlayers().get(1) : game.getPlayers().get(0);
-		    HandPaneH oppHP = new HandPaneH(opp.getHand());
-
-		    SwapPane sp = new SwapPane(oppHP, ownHP);
-		    root.getChildren().add(sp);
-
-		    temp = -1;
-		    sp.getCue().setText("Select opponent's card (ABOVE)");
-		    for (CardView oppCV : oppHP.getCardViews()) {
-			oppCV.setOnMouseClicked(ee -> {
-				if (temp < 0) {
-				    temp = oppHP.getCardViews().indexOf(oppCV);
-				    sp.getCue().setText("Select own card (BELOW)");
-				}
-			    });
-		    }
-		    for (CardView ownCV : ownHP.getCardViews()) {
-			ownCV.setOnMouseClicked(ee -> {
-				if (temp >= 0) {
-				    int ownIdx = ownHP.getCardViews().indexOf(ownCV);
-				    game.getPlayers().get(0).swapCardsWithP(game.getPlayers().get(1), ownIdx+1, temp+1);
-
-				    CardView oppCV = tablePane.getTopHand().getCardViews().get(temp);
-				    tablePane.getTopHand().setCardViewByIdx(temp, ownCV);
-				    tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
-
-				    root.getChildren().remove(sp);
-				    dp.fireEvent(END_EVENT);
-				}
-			    });
-		    }
-		} else if (action.equals("PEEK")) {
-		    viewCardFromPlayer(game.getPlayers().get(0));
+		if (action.equals("PEEK")) { // Don't need to select an opponent to peek OWN hand.
+		    viewCardFromPlayer(player);
 		    dp.fireEvent(END_EVENT);
-		} else if (action.equals("SPY")) {
-		    viewCardFromPlayer(game.getPlayers().get(1));
-		    dp.fireEvent(END_EVENT);
+		} else {
+		    HBox opponentSelection = new HBox();
+		    Button bLeft;
+		    Button bRight;
+		    Button bTop;
+		    switch (opponents.size()) {
+		    case 1:
+			performAction(dp, action, player, opponents.get(0), "T");
+			break;
+		    case 2:
+			bLeft = new Button("Left");
+			bLeft.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(0), "L"));
+			bRight = new Button("Right");
+			bRight.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(1), "R"));
+			opponentSelection.getChildren().setAll(bLeft, bRight);
+			dp.getPaneLayout().add(opponentSelection, 0, 4);
+			break;
+		    case 3:
+			bLeft = new Button("Left");
+			bLeft.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(0), "L"));
+			bTop = new Button("Top");
+			bTop.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(1), "T"));
+			bRight = new Button("Right");
+			bRight.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(2), "R"));
+			opponentSelection.getChildren().setAll(bLeft, bTop, bRight);
+			dp.getPaneLayout().add(opponentSelection, 0, 4);
+			break;
+		    }
 		}
 	    }
 	};
