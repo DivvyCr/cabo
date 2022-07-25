@@ -3,8 +3,10 @@ package dvc.cabo.app;
 import java.util.ArrayList;
 
 import dvc.cabo.logic.Card;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 
@@ -39,6 +41,12 @@ public class HandPane extends FlowPane {
     public void setCardViewByIdx(int idx, CardView cardView) {
 	cardViews.set(idx, cardView);
 	getChildren().setAll(cardViews);
+    }
+
+    public void setOnClickCardView(HandFunction test) {
+	for (CardView cv : cardViews) {
+	    test.set(cv);
+	}
     }
 
 }

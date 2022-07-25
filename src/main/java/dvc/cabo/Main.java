@@ -102,13 +102,11 @@ public class Main extends Application {
 	initPeeksPane.getCue().setText("Peek two cards:");
 	root.getChildren().add(initPeeksPane);
 
-	for (CardView cv : initPeeksHand.getCardViews()) {
-	    cv.setOnMouseClicked(e -> {
-		    cv.setSeen();
-		    numInitPeeks--; // Any better way, without class field?
-		    if (numInitPeeks == 0) initPeeksPane.getCue().setText("Click to proceed.");
-		});
-	}
+	initPeeksHand.setOnClickCardView(cv -> {
+		cv.setSeen();
+		numInitPeeks--; // Any better way, without class field?
+		if (numInitPeeks == 0) initPeeksPane.getCue().setText("Click to proceed.");
+	    });
 
 	initPeeksPane.setOnMouseClicked(e -> {
 		if (numInitPeeks < 0) {
@@ -187,28 +185,26 @@ public class Main extends Application {
 			endTurnAndWait();
 		    });
 
-		for (CardView cv : playerHand.getCardViews()) {
-		    cv.setOnMouseClicked(ee -> {
-			    int cardIdx = playerHand.getCardViews().indexOf(cv);
+		playerHand.setOnClickCardView(cv -> {
+			int cardIdx = playerHand.getCardViews().indexOf(cv);
 
-			    if (isFromDiscard) {
-				game.drawFromDiscard(cardIdx, player);
+			if (isFromDiscard) {
+			    game.drawFromDiscard(cardIdx, player);
 
-				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDiscardView().getTopCardView());
-			    } else {
-				game.drawFromDeck(cardIdx, player);
+			    tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDiscardView().getTopCardView());
+			} else {
+			    game.drawFromDeck(cardIdx, player);
 
-				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDeckView().getTopCardView());
-				tablePane.getDeckView().setTopCardView(new CardView(game.getDeck().getTopCard()));
+			    tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDeckView().getTopCardView());
+			    tablePane.getDeckView().setTopCardView(new CardView(game.getDeck().getTopCard()));
 
-				drawnCardView.setHidden();
-			    }
+			    drawnCardView.setHidden();
+			}
 
-			    playerHand.setCardViewByIdx(cardIdx, drawnCardView);
+			playerHand.setCardViewByIdx(cardIdx, drawnCardView);
 
-			    dp.fireEvent(END_EVENT);
-			});
-		}
+			dp.fireEvent(END_EVENT);
+		    });
 	    }
 	};
     }
@@ -254,31 +250,27 @@ public class Main extends Application {
 
 	    temp = -1;
 	    sp.getCue().setText("Select opponent's card (ABOVE)");
-	    for (CardView oppCV : oppHP.getCardViews()) {
-		oppCV.setOnMouseClicked(ee -> {
-			if (temp < 0) {
-			    temp = oppHP.getCardViews().indexOf(oppCV);
-			    sp.getCue().setText("Select own card (BELOW)");
-			}
-		    });
-	    }
-	    for (CardView ownCV : ownHP.getCardViews()) {
-		ownCV.setOnMouseClicked(ee -> {
-			if (temp >= 0) {
-			    int ownIdx = ownHP.getCardViews().indexOf(ownCV);
-			    player.swapCardsWithP(chosenOpponent, ownIdx, temp);
+	    oppHP.setOnClickCardView(oppCV -> {
+		    if (temp < 0) {
+			temp = oppHP.getCardViews().indexOf(oppCV);
+			sp.getCue().setText("Select own card (BELOW)");
+		    }
+		});
+	    ownHP.setOnClickCardView(ownCV -> {
+		    if (temp >= 0) {
+			int ownIdx = ownHP.getCardViews().indexOf(ownCV);
+			player.swapCardsWithP(chosenOpponent, ownIdx, temp);
 
-			    CardView oppCV = oppHP.getCardViews().get(temp);
-			    if (tpSide.equals("L")) tablePane.getLeftHand().setCardViewByIdx(temp, ownCV);
-			    else if (tpSide.equals("T")) tablePane.getTopHand().setCardViewByIdx(temp, ownCV);
-			    else if (tpSide.equals("R")) tablePane.getRightHand().setCardViewByIdx(temp, ownCV);
-			    tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
+			CardView oppCV = oppHP.getCardViews().get(temp);
+			if (tpSide.equals("L")) tablePane.getLeftHand().setCardViewByIdx(temp, ownCV);
+			else if (tpSide.equals("T")) tablePane.getTopHand().setCardViewByIdx(temp, ownCV);
+			else if (tpSide.equals("R")) tablePane.getRightHand().setCardViewByIdx(temp, ownCV);
+			tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
 
-			    root.getChildren().remove(sp);
-			    dp.fireEvent(END_EVENT);
-			}
-		    });
-	    }
+			root.getChildren().remove(sp);
+			dp.fireEvent(END_EVENT);
+		    }
+		});
 	} else if (action.equals("SPY")) {
 	    viewCardFromPlayer(chosenOpponent);
 	    dp.fireEvent(END_EVENT); // BUG: Breaks UI, since END_EVENT triggers `setup()`
@@ -334,13 +326,11 @@ public class Main extends Application {
 	root.getChildren().add(pp);
 
 	temp = 0;
-	for (CardView cv : hp.getCardViews()) {
-	    cv.setOnMouseClicked(e -> {
-		    if (temp < 0) root.getChildren().remove(pp);
-		    cv.setSeen();
-		    temp--;
-		});
-	}
+	hp.setOnClickCardView(cv -> {
+		if (temp < 0) root.getChildren().remove(pp);
+		cv.setSeen();
+		temp--;
+	    });
     }
 
     public static void main(String[] args) { launch(args); }
