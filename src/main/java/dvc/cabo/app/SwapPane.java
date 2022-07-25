@@ -8,10 +8,10 @@ public class SwapPane extends ActionPane {
 
     private final GridPane paneLayout;
 
-    private HandPaneH topHand;
-    private HandPaneH bottomHand;
+    private HandPane topHand;
+    private HandPane bottomHand;
 
-    public SwapPane(HandPaneH topHand, HandPaneH bottomHand) {
+    public SwapPane(HandPane topHand, HandPane bottomHand) {
 	paneLayout = new GridPane();
 	paneLayout.setVgap(50);
 	paneLayout.setAlignment(Pos.CENTER);
@@ -30,11 +30,11 @@ public class SwapPane extends ActionPane {
 	getChildren().add(paneLayout);
     }
 
-    public HandPaneH getTopHand() {
+    public HandPane getTopHand() {
 	return topHand;
     }
 
-    public HandPaneH getBottomHand() {
+    public HandPane getBottomHand() {
 	return bottomHand;
     }
 

@@ -4,20 +4,24 @@ import java.util.ArrayList;
 
 import dvc.cabo.logic.Card;
 import javafx.geometry.Insets;
-import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 
-public class HandPaneV extends VBox {
-    // Virtually a DUPLICATE of HandPaneH...
+public class HandPane extends FlowPane {
+
     private ArrayList<CardView> cardViews = new ArrayList<>();
 
-    public HandPaneV() {
+    public HandPane() {
 	this(new ArrayList<Card>());
     }
 
-    public HandPaneV(ArrayList<Card> cards) {
-	setStyle("-fx-border-color: #DDD; -fx-border-width: 4px; -fx-border-radius: 6px");
-	setSpacing(10);
+    public HandPane(ArrayList<Card> cards) {
+	setHgap(5);
+	setVgap(5);
+	setPrefWrapLength(620); // Placeholder.
+	setStyle("-fx-border-color: #DDD; -fx-border-width: 2px; -fx-border-radius: 6px");
+	setAlignment(Pos.CENTER);
 	setPadding(new Insets(15));
 	setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
