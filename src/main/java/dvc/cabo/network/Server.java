@@ -62,7 +62,13 @@ public class Server {
 	game = newGame; // FULLY TRUST CLIENT, for no reason.. (ie. needs to change)
 	activeThreadIdx = (activeThreadIdx + 1) % threads.size();
 	try {
-	    threads.get(activeThreadIdx).getOS().writeObject(new DataPacket("$NEXT", game));
+	    for (int i = 0; i < threads.size(); i++) {
+		if (i == activeThreadIdx) {
+		    threads.get(activeThreadIdx).getOS().writeObject(new DataPacket("$NEXT", game));
+		} else {
+		    threads.get(i).getOS().writeObject(new DataPacket("$WAIT", game));
+		}
+	    }
 	} catch (IOException e) { e.printStackTrace(); }
     }
 

@@ -114,30 +114,9 @@ public class Main extends Application {
 		if (numInitPeeks < 0) {
 		    root.getChildren().remove(initPeeksPane);
 
-		    new Thread() {
-			public void run() {
-			    try {
-				DataPacket res;
-				while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
-				    res = (DataPacket) in.readObject();
-				    if (res.info.startsWith("$NEXT")) {
-					game = res.game;
-					break;
-				    }
-				}
-			    } catch (IOException ex) {
-				System.out.println("Exception as control flow..");
-				// e.printStackTrace();
-			    } catch (ClassNotFoundException e1) {
-				e1.printStackTrace();
-			    }
-
-			    Platform.runLater(() -> {
-				    setup();
-				    playTurn();
-				});
-			}
-		    }.start();
+		    Thread t = new Thread(() -> waitForPacket());
+		    t.setDaemon(true);
+		    t.start();
 		}
 	    });
     }
@@ -173,20 +152,26 @@ public class Main extends Application {
 
 		DrawPane dp = new DrawPane(drawnCardView);
 		dp.setHandView(playerHand);
-		dp.getDiscardButton().setOnMouseClicked(ee -> {
-			game.useCard();
-			dp.fireEvent(END_EVENT);
-		    });
 		// dp.getCaboButton().setOnMouseClicked(ee -> {
 		//	game.callCabo();
 		//	dp.fireEvent(END_EVENT);
 		//     });
 
-		if (!isFromDiscard && !game.getDeck().getTopCard().getAction().equals("")) {
-		    // Drawn card will have an ACTION.
-		    dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
-		    dp.getActionButton().setOnMouseClicked(handleAction(dp, game.getDeck().getTopCard().getAction(), playerHand));
-		    dp.enableActionButton();
+		if (isFromDiscard) {
+		    dp.getDiscardButton().setOnMouseClicked(eee -> dp.fireEvent(END_EVENT)); // Drawing from discard and discarding it makes no change.
+		}
+		else {
+		    dp.getDiscardButton().setOnMouseClicked(eee -> {
+			    game.useCard();
+			    dp.fireEvent(END_EVENT);
+			});
+
+		    if (!game.getDeck().getTopCard().getAction().equals("")) {
+			// Card is drawn from the deck and has an action (ie. action is available).
+			dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
+			dp.getActionButton().setOnMouseClicked(handleAction(dp, game.getDeck().getTopCard().getAction(), playerHand));
+			dp.enableActionButton();
+		    }
 		}
 
 		root.getChildren().add(dp);
@@ -228,32 +213,37 @@ public class Main extends Application {
 	};
     }
 
-    private void endTurnAndWait() {
-	Thread t = new Thread() {
-		public void run() {
-		    try {
-			out.writeObject(new DataPacket("$DONE", game));
-
-			DataPacket res;
-			while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
-			    res = (DataPacket) in.readObject();
-			    if (res.info.startsWith("$NEXT")) {
-				game = res.game;
-				break;
-			    }
-			}
-			Platform.runLater(() -> {
-				setup();
-				playTurn();
-			    });
-		    } catch (IOException ex) {
-			System.out.println("Exception as control flow..");
-			// e.printStackTrace();
-		    } catch (ClassNotFoundException e1) {
-			e1.printStackTrace();
-		    }
+    private void waitForPacket() {
+	try {
+	    DataPacket res;
+	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+		res = (DataPacket) in.readObject();
+		if (res.info.startsWith("$NEXT")) {
+		    game = res.game;
+		    Platform.runLater(() -> setup());
+		    break;
+		} else if (res.info.startsWith("$WAIT")) {
+		    game = res.game;
+		    Platform.runLater(() -> setup());
 		}
-	    };
+	    }
+	} catch (IOException ex) {
+	    System.out.println("Exception as control flow..");
+	} catch (ClassNotFoundException e1) {
+	    e1.printStackTrace();
+	}
+
+	Platform.runLater(() -> playTurn());
+    }
+
+    private void endTurnAndWait() {
+	Thread t = new Thread(() -> {
+		try {
+		    out.writeObject(new DataPacket("$DONE", game));
+		} catch (IOException e) { e.printStackTrace(); }
+
+		waitForPacket();
+	});
 	t.setDaemon(true);
 	t.start();
     }
@@ -295,7 +285,7 @@ public class Main extends Application {
 	    }
 	} else if (action.equals("SPY")) {
 	    viewCardFromPlayer(chosenOpponent);
-	    dp.fireEvent(END_EVENT);
+	    dp.fireEvent(END_EVENT); // BUG: Breaks UI, since END_EVENT triggers `setup()`
 	}
     }
 
@@ -307,7 +297,7 @@ public class Main extends Application {
 
 		if (action.equals("PEEK")) { // Don't need to select an opponent to peek OWN hand.
 		    viewCardFromPlayer(player);
-		    dp.fireEvent(END_EVENT);
+		    dp.fireEvent(END_EVENT); // BUG: Breaks UI, since END_EVENT triggers `setup()`
 		} else {
 		    HBox opponentSelection = new HBox();
 		    Button bLeft;
