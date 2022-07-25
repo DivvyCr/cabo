@@ -43,10 +43,8 @@ public class HandPane extends FlowPane {
 	getChildren().setAll(cardViews);
     }
 
-    public void setOnClickCardView(HandFunction test) {
-	for (CardView cv : cardViews) {
-	    test.set(cv);
-	}
+    public void setOnClickCardView(HandFunction handFunction) {
+	for (CardView cv : cardViews) cv.setOnMouseClicked(e -> handFunction.set(cv));
     }
 
 }
