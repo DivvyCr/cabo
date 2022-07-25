@@ -15,8 +15,7 @@ public class TablePane extends BorderPane {
     private final GridPane centerSpace; // Area for deck, discard, and cue.
 
     // Currently, limiting to 1v1, for simplicity:
-    private final HandPaneH playerHand, topHand;
-    private final HandPaneV leftHand, rightHand;
+    private final HandPane playerHand, topHand, leftHand, rightHand;
     private final DeckView deckView, discardView;
     private final Text cue;
 
@@ -24,22 +23,26 @@ public class TablePane extends BorderPane {
 	this.deckView = deckView;
 	this.discardView = discardView;
 
-	playerHand = new HandPaneH(player.getHand());
+	playerHand = new HandPane(player.getHand());
 	switch (opponents.size()) {
 	case 1:
 	    leftHand = null;
-	    topHand = new HandPaneH(opponents.get(0).getHand());
+	    topHand = new HandPane(opponents.get(0).getHand());
 	    rightHand = null;
 	    break;
 	case 2:
-	    leftHand = new HandPaneV(opponents.get(0).getHand());
+	    leftHand = new HandPane(opponents.get(0).getHand());
+	    leftHand.setPrefWidth(0);
 	    topHand = null;
-	    rightHand = new HandPaneV(opponents.get(1).getHand());
+	    rightHand = new HandPane(opponents.get(1).getHand());
+	    rightHand.setPrefWidth(0);
 	    break;
 	case 3:
-	    leftHand = new HandPaneV(opponents.get(0).getHand());
-	    topHand = new HandPaneH(opponents.get(1).getHand());
-	    rightHand = new HandPaneV(opponents.get(2).getHand());
+	    leftHand = new HandPane(opponents.get(0).getHand());
+	    leftHand.setPrefWidth(0);
+	    topHand = new HandPane(opponents.get(1).getHand());
+	    rightHand = new HandPane(opponents.get(2).getHand());
+	    rightHand.setPrefWidth(0);
 	    break;
 	default:
 	    leftHand = null;
@@ -82,19 +85,19 @@ public class TablePane extends BorderPane {
 	setPadding(new Insets(200));
     }
 
-    public HandPaneH getPlayerHand() {
+    public HandPane getPlayerHand() {
 	return playerHand;
     }
 
-    public HandPaneV getLeftHand() {
+    public HandPane getLeftHand() {
 	return leftHand;
     }
 
-    public HandPaneH getTopHand() {
+    public HandPane getTopHand() {
 	return topHand;
     }
 
-    public HandPaneV getRightHand() {
+    public HandPane getRightHand() {
 	return rightHand;
     }
 

@@ -8,7 +8,7 @@ public class PeekPane extends ActionPane {
 
     private final GridPane paneLayout;
 
-    private HandPaneH handView;
+    private HandPane handView;
 
     public PeekPane() {
 	paneLayout = new GridPane();
@@ -18,18 +18,18 @@ public class PeekPane extends ActionPane {
 	GridPane.setHalignment(getCue(), HPos.CENTER);
 	paneLayout.add(getCue(), 0, 0);
 
-	handView = new HandPaneH();
+	handView = new HandPane();
 	GridPane.setHalignment(handView, HPos.CENTER);
 	paneLayout.add(handView, 0, 1);
 
 	getChildren().add(paneLayout);
     }
 
-    public HandPaneH getHandView() {
+    public HandPane getHandView() {
 	return handView;
     }
 
-    public void setHandView(HandPaneH handView) {
+    public void setHandView(HandPane handView) {
 	paneLayout.getChildren().remove(this.handView);
 	this.handView = handView;
 	paneLayout.add(handView, 0, 1);

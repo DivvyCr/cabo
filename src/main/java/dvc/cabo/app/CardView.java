@@ -15,7 +15,7 @@ public class CardView extends ImageView {
 
     public CardView(Card card) {
 	setPreserveRatio(true);
-	setFitWidth(200);
+	setFitWidth(150);
 
 	SEEN = imageLoader.getCardImageByValue(card.getValue());
 	HIDDEN = imageLoader.getHiddenCardImage();

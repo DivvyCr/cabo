@@ -55,8 +55,7 @@ public class Main extends Application {
     }
 
     private void listenForGo(Stage stage) {
-	new Thread() {
-	    public void run() {
+	Thread t = new Thread(() -> {
 		try {
 		    DataPacket res;
 		    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
@@ -74,11 +73,12 @@ public class Main extends Application {
 		}
 
 		Platform.runLater(() -> {
-			stage.setScene(new Scene(root, 1600, 1600));
-			initialPeeks();
+			stage.setScene(new Scene(root, 1550, 1550)); // 1550 makes a nice border around ActionPane's 1500
+			renderInitPeeks();
 		    });
-	    }
-	}.start();
+	});
+	t.setDaemon(true);
+	t.start();
     }
 
     @Override
@@ -95,8 +95,8 @@ public class Main extends Application {
 	    });
     }
 
-    private void initialPeeks() {
-	HandPaneH initPeeksHand = new HandPaneH(game.getPlayers().get(myIdx).getHand());
+    private void renderInitPeeks() {
+	HandPane initPeeksHand = new HandPane(game.getPlayers().get(myIdx).getHand());
 	PeekPane initPeeksPane = new PeekPane();
 	initPeeksPane.setHandView(initPeeksHand);
 	initPeeksPane.getCue().setText("Peek two cards:");
@@ -121,7 +121,7 @@ public class Main extends Application {
 	    });
     }
 
-    private void setup() {
+    private void renderTable() {
 	player = game.getPlayers().get(myIdx);
 
 	CardView discardView = new CardView(game.getDiscardPile().getTopCard());
@@ -137,12 +137,12 @@ public class Main extends Application {
     }
 
     private void playTurn() {
-	HandPaneH playerHand = new HandPaneH(player.getHand());
-	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, playerHand, player));
-	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, playerHand, player));
+	HandPane playerHand = new HandPane(player.getHand());
+	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, playerHand));
+	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, playerHand));
     }
 
-    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, HandPaneH playerHand, Player player1) {
+    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, HandPane playerHand) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
@@ -192,11 +192,11 @@ public class Main extends Application {
 			    int cardIdx = playerHand.getCardViews().indexOf(cv);
 
 			    if (isFromDiscard) {
-				game.drawFromDiscard(cardIdx, player1);
+				game.drawFromDiscard(cardIdx, player);
 
 				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDiscardView().getTopCardView());
 			    } else {
-				game.drawFromDeck(cardIdx, player1);
+				game.drawFromDeck(cardIdx, player);
 
 				tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDeckView().getTopCardView());
 				tablePane.getDeckView().setTopCardView(new CardView(game.getDeck().getTopCard()));
@@ -218,14 +218,10 @@ public class Main extends Application {
 	    DataPacket res;
 	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
 		res = (DataPacket) in.readObject();
-		if (res.info.startsWith("$NEXT")) {
-		    game = res.game;
-		    Platform.runLater(() -> setup());
-		    break;
-		} else if (res.info.startsWith("$WAIT")) {
-		    game = res.game;
-		    Platform.runLater(() -> setup());
-		}
+		game = res.game;
+		Platform.runLater(() -> renderTable());
+
+		if (res.info.startsWith("$NEXT")) break;
 	    }
 	} catch (IOException ex) {
 	    System.out.println("Exception as control flow..");
@@ -248,10 +244,10 @@ public class Main extends Application {
 	t.start();
     }
 
-    private void performAction(DrawPane dp, String action, Player player, Player chosenOpponent, String tpSide) {
+    private void performAction(DrawPane dp, String action, Player chosenOpponent, String tpSide) {
 	if (action.equals("SWAP")) {
-	    HandPaneH ownHP = new HandPaneH(player.getHand());
-	    HandPaneH oppHP = new HandPaneH(chosenOpponent.getHand());
+	    HandPane ownHP = new HandPane(player.getHand());
+	    HandPane oppHP = new HandPane(chosenOpponent.getHand());
 
 	    SwapPane sp = new SwapPane(oppHP, ownHP);
 	    root.getChildren().add(sp);
@@ -289,7 +285,7 @@ public class Main extends Application {
 	}
     }
 
-    private EventHandler<MouseEvent> handleAction(DrawPane dp, String action, HandPaneH hp) {
+    private EventHandler<MouseEvent> handleAction(DrawPane dp, String action, HandPane hp) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
@@ -305,23 +301,23 @@ public class Main extends Application {
 		    Button bTop;
 		    switch (opponents.size()) {
 		    case 1:
-			performAction(dp, action, player, opponents.get(0), "T");
+			performAction(dp, action, opponents.get(0), "T");
 			break;
 		    case 2:
 			bLeft = new Button("Left");
-			bLeft.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(0), "L"));
+			bLeft.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(0), "L"));
 			bRight = new Button("Right");
-			bRight.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(1), "R"));
+			bRight.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(1), "R"));
 			opponentSelection.getChildren().setAll(bLeft, bRight);
 			dp.getPaneLayout().add(opponentSelection, 0, 4);
 			break;
 		    case 3:
 			bLeft = new Button("Left");
-			bLeft.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(0), "L"));
+			bLeft.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(0), "L"));
 			bTop = new Button("Top");
-			bTop.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(1), "T"));
+			bTop.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(1), "T"));
 			bRight = new Button("Right");
-			bRight.setOnMouseClicked(ee -> performAction(dp, action, player, opponents.get(2), "R"));
+			bRight.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(2), "R"));
 			opponentSelection.getChildren().setAll(bLeft, bTop, bRight);
 			dp.getPaneLayout().add(opponentSelection, 0, 4);
 			break;
@@ -333,7 +329,7 @@ public class Main extends Application {
 
     private void viewCardFromPlayer(Player player) {
 	PeekPane pp = new PeekPane();
-	HandPaneH hp = new HandPaneH(player.getHand());
+	HandPane hp = new HandPane(player.getHand());
 	pp.setHandView(hp);
 	root.getChildren().add(pp);
 
