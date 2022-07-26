@@ -3,23 +3,21 @@ package dvc.cabo.logic;
 import java.io.Serializable;
 
 public class Card implements Serializable {
-    private int value;
-    private String action = "";
+
+    public static enum Action { PEEK, SPY, SWAP, NONE }
+
+    private final int value;
+    private final Action action;
     private boolean isFaceDown;
 
     public Card(int value, boolean isFaceDown) {
 	this.value = value;
 	this.isFaceDown = isFaceDown;
 
-	if (this.value == 11 || this.value == 12) {
-	    this.action = "SWAP";
-	}
-	if (this.value == 9 || this.value == 10) {
-	    this.action = "SPY";
-	}
-	if (this.value == 7 || this.value == 8) {
-	    this.action = "PEEK";
-	}
+	if (value == 7 || value == 8) action = Action.PEEK;
+	else if (value == 9 || value == 10) action = Action.SPY;
+	else if (value == 11 || value == 12) action = Action.SWAP;
+	else action = Card.Action.NONE;
     }
 
     public void flipCard() {
@@ -30,7 +28,7 @@ public class Card implements Serializable {
 	return value;
     }
 
-    public String getAction() {
+    public Action getAction() {
 	return action;
     }
 
