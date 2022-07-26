@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import dvc.cabo.app.*;
+import dvc.cabo.logic.Card;
 import dvc.cabo.logic.CardPile;
 import dvc.cabo.logic.Game;
 import dvc.cabo.logic.Player;
@@ -112,7 +113,7 @@ public class Main extends Application {
 		if (numInitPeeks < 0) {
 		    root.getChildren().remove(initPeeksPane);
 
-		    Thread t = new Thread(() -> waitForPacket());
+		    Thread t = new Thread(() -> waitTurnWhileUpdating());
 		    t.setDaemon(true);
 		    t.start();
 		}
@@ -120,17 +121,9 @@ public class Main extends Application {
     }
 
     private void renderTable() {
-	player = game.getPlayers().get(myIdx);
-
-	CardView discardView = new CardView(game.getDiscardPile().getTopCard());
-	discardView.setSeen();
-
-	opponents = (ArrayList<Player>) game.getPlayers().clone();
-	opponents.remove(myIdx);
-
 	tablePane = new TablePane(player, opponents,
 				  new DeckView(new CardView(game.getDeck().getTopCard())),
-				  new DeckView(discardView));
+				  new DeckView(new CardView(game.getDiscardPile().getTopCard())));
 	root.getChildren().add(tablePane);
     }
 
@@ -164,7 +157,7 @@ public class Main extends Application {
 			    dp.fireEvent(END_EVENT);
 			});
 
-		    if (!game.getDeck().getTopCard().getAction().equals("")) {
+		    if (game.getDeck().getTopCard().getAction() != Card.Action.NONE) {
 			// Card is drawn from the deck and has an action (ie. action is available).
 			dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
 			dp.getActionButton().setOnMouseClicked(handleAction(dp, game.getDeck().getTopCard().getAction(), playerHand));
@@ -209,12 +202,18 @@ public class Main extends Application {
 	};
     }
 
-    private void waitForPacket() {
+    @SuppressWarnings("unchecked") // Hide annoying warning about type-casting the cloned `ArrayList`.
+    private void waitTurnWhileUpdating() {
 	try {
 	    DataPacket res;
 	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
 		res = (DataPacket) in.readObject();
 		game = res.game;
+		player = game.getPlayers().get(myIdx);
+
+		opponents = (ArrayList<Player>) game.getPlayers().clone();
+		opponents.remove(myIdx);
+
 		Platform.runLater(() -> renderTable());
 
 		if (res.info.startsWith("$NEXT")) break;
@@ -234,14 +233,14 @@ public class Main extends Application {
 		    out.writeObject(new DataPacket("$DONE", game));
 		} catch (IOException e) { e.printStackTrace(); }
 
-		waitForPacket();
+		waitTurnWhileUpdating();
 	});
 	t.setDaemon(true);
 	t.start();
     }
 
-    private void performAction(DrawPane dp, String action, Player chosenOpponent, String tpSide) {
-	if (action.equals("SWAP")) {
+    private void performAction(DrawPane dp, Card.Action action, Player chosenOpponent, String tpSide) {
+	if (action == Card.Action.SWAP) {
 	    HandPane ownHP = new HandPane(player.getHand());
 	    HandPane oppHP = new HandPane(chosenOpponent.getHand());
 
@@ -271,21 +270,19 @@ public class Main extends Application {
 			dp.fireEvent(END_EVENT);
 		    }
 		});
-	} else if (action.equals("SPY")) {
-	    viewCardFromPlayer(chosenOpponent);
-	    dp.fireEvent(END_EVENT); // BUG: Breaks UI, since END_EVENT triggers `setup()`
+	} else if (action == Card.Action.SPY) {
+	    viewCardFromPlayer(dp, chosenOpponent);
 	}
     }
 
-    private EventHandler<MouseEvent> handleAction(DrawPane dp, String action, HandPane hp) {
+    private EventHandler<MouseEvent> handleAction(DrawPane dp, Card.Action action, HandPane hp) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
 	    public void handle(MouseEvent e) {
 		game.useCard();
 
-		if (action.equals("PEEK")) { // Don't need to select an opponent to peek OWN hand.
-		    viewCardFromPlayer(player);
-		    dp.fireEvent(END_EVENT); // BUG: Breaks UI, since END_EVENT triggers `setup()`
+		if (action == Card.Action.PEEK) { // Don't need to select an opponent to peek OWN hand.
+		    viewCardFromPlayer(dp, player);
 		} else {
 		    HBox opponentSelection = new HBox();
 		    Button bLeft;
@@ -319,7 +316,7 @@ public class Main extends Application {
 	};
     }
 
-    private void viewCardFromPlayer(Player player) {
+    private void viewCardFromPlayer(DrawPane dp, Player player) {
 	PeekPane pp = new PeekPane();
 	HandPane hp = new HandPane(player.getHand());
 	pp.setHandView(hp);
@@ -327,7 +324,10 @@ public class Main extends Application {
 
 	temp = 0;
 	hp.setOnClickCardView(cv -> {
-		if (temp < 0) root.getChildren().remove(pp);
+		if (temp < 0) {
+		    root.getChildren().remove(pp);
+		    dp.fireEvent(END_EVENT);
+		}
 		cv.setSeen();
 		temp--;
 	    });

@@ -32,17 +32,13 @@ public class TablePane extends BorderPane {
 	    break;
 	case 2:
 	    leftHand = new HandPane(opponents.get(0).getHand());
-	    leftHand.setPrefWidth(0);
 	    topHand = null;
 	    rightHand = new HandPane(opponents.get(1).getHand());
-	    rightHand.setPrefWidth(0);
 	    break;
 	case 3:
 	    leftHand = new HandPane(opponents.get(0).getHand());
-	    leftHand.setPrefWidth(0);
 	    topHand = new HandPane(opponents.get(1).getHand());
 	    rightHand = new HandPane(opponents.get(2).getHand());
-	    rightHand.setPrefWidth(0);
 	    break;
 	default:
 	    leftHand = null;
@@ -52,6 +48,9 @@ public class TablePane extends BorderPane {
 	    System.out.println("Unknown number of opponents?");
 	    System.exit(-1);
 	}
+	// Set left/right hands to vertical, if they exist.
+	if (leftHand != null) leftHand.setPrefWidth(0);
+	if (rightHand != null) rightHand.setPrefWidth(0);
 
 	cue = new Text("...");
 	cue.setFont(Font.font("Open Sans", FontWeight.BOLD, 24));
