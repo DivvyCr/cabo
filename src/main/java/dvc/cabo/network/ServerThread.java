@@ -12,6 +12,7 @@ public class ServerThread extends Thread {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private boolean isHost;
+    public String name;
 
     public ServerThread(Socket socket) {
 	super("ServerThread");
@@ -40,6 +41,11 @@ public class ServerThread extends Thread {
 	    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
 		s = (DataPacket) in.readObject();
 		if (s.info.startsWith("$DONE")) {
+		    Server.next(s.game);
+		} else if (s.info.startsWith("$NAME:")) {
+		    name = s.info.substring(6);
+		} else if (s.info.startsWith("$CABO")) {
+		    Server.callCabo();
 		    Server.next(s.game);
 		}
 	    }

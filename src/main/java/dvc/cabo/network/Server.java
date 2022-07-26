@@ -14,6 +14,7 @@ public class Server {
 
     public static Game game;
     private static int activeThreadIdx;
+    private static int lastThreadIdx = -1;
 
     public static void main(String[] args) throws IOException {
 
@@ -43,7 +44,14 @@ public class Server {
 	    }
 
 	    // Capacity reached, start the game:
-	    for (ServerThread st : threads) game.addPlayerByName(Integer.toString(threads.indexOf(st)));
+	    for (ServerThread st : threads) {
+		while (true) {
+		    if (st.name != null) {
+			game.addPlayerByName(st.name);
+			break;
+		    }
+		}
+	    }
 	    game.startGame();
 
 	    // Start games for clients:
@@ -62,14 +70,23 @@ public class Server {
 	game = newGame; // FULLY TRUST CLIENT, for no reason.. (ie. needs to change)
 	activeThreadIdx = (activeThreadIdx + 1) % threads.size();
 	try {
-	    for (int i = 0; i < threads.size(); i++) {
-		if (i == activeThreadIdx) {
-		    threads.get(activeThreadIdx).getOS().writeObject(new DataPacket("$NEXT", game));
-		} else {
-		    threads.get(i).getOS().writeObject(new DataPacket("$WAIT", game));
+	    if (activeThreadIdx == lastThreadIdx) {
+		game.endRound();
+		for (ServerThread st : threads) st.getOS().writeObject(new DataPacket("$END", game));
+	    } else {
+		for (int i = 0; i < threads.size(); i++) {
+		    if (i == activeThreadIdx) {
+			threads.get(activeThreadIdx).getOS().writeObject(new DataPacket("$NEXT", game));
+		    } else {
+			threads.get(i).getOS().writeObject(new DataPacket("$WAIT", game));
+		    }
 		}
 	    }
 	} catch (IOException e) { e.printStackTrace(); }
+    }
+
+    public static void callCabo() {
+	lastThreadIdx = activeThreadIdx;
     }
 
     public static boolean addPlayer(String name) {

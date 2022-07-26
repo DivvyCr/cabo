@@ -8,7 +8,7 @@ public class Game implements Serializable {
     private CardPile deck;
     private CardPile discardPile;
 
-    private boolean caboCalled = false;
+    private HashMap<Player, Integer> currentScores = new HashMap<>();
 
     public Game() {
 	System.out.println("Setting up a new game of CABO...");
@@ -19,6 +19,24 @@ public class Game implements Serializable {
 	discardPile = new CardPile();
 	discardPile.addCardToTop(deck.drawTopCard());
 	discardPile.getTopCard().flipCard();
+    }
+
+    public void endRound() {
+	for (Player p : players) {
+	    if (!currentScores.containsKey(p)) {
+		currentScores.put(p, 0);
+	    }
+
+	    int handSum = 0;
+	    for (Card c : p.getHand()) handSum += c.getValue();
+	    int currentScore = currentScores.get(p);
+
+	    currentScores.put(p, currentScore + handSum);
+	}
+    }
+
+    public HashMap<Player, Integer> getScores() {
+	return currentScores;
     }
 
     public CardPile getDeck() { return deck; }
@@ -39,11 +57,6 @@ public class Game implements Serializable {
     public void drawFromDeck(int cardIdx, Player player) { drawCard(deck.drawTopCard(), cardIdx, player); }
 
     public void drawFromDiscard(int cardIdx, Player player) { drawCard(discardPile.drawTopCard(), cardIdx, player); }
-
-    public void callCabo() {
-	useCard();
-	caboCalled = true;
-    }
 
     public void useCard() {
 	Card discard = deck.drawTopCard();
@@ -74,7 +87,4 @@ public class Game implements Serializable {
 	player.setHand(hand);
     }
 
-    public boolean isCaboCalled() {
-	return caboCalled;
-    }
 }
