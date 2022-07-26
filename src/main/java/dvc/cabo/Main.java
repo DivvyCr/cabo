@@ -6,8 +6,16 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Map;
 
-import dvc.cabo.app.*;
+import dvc.cabo.app.CardView;
+import dvc.cabo.app.ConnectPane;
+import dvc.cabo.app.DeckView;
+import dvc.cabo.app.DrawPane;
+import dvc.cabo.app.HandPane;
+import dvc.cabo.app.PeekPane;
+import dvc.cabo.app.SwapPane;
+import dvc.cabo.app.TablePane;
 import dvc.cabo.logic.Card;
 import dvc.cabo.logic.CardPile;
 import dvc.cabo.logic.Game;
@@ -16,11 +24,14 @@ import dvc.cabo.network.DataPacket;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
+import javafx.geometry.HPos;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -40,11 +51,15 @@ public class Main extends Application {
     private ObjectOutputStream out;
     private ObjectInputStream in;
 
-    private void connect(String ipAddress, int portNumber) {
+    private Stage stage;
+
+    private void connect(String ipAddress, int portNumber, String name) {
 	try {
 	    socket = new Socket(ipAddress, portNumber);
 	    out = new ObjectOutputStream(socket.getOutputStream());
 	    in = new ObjectInputStream(socket.getInputStream());
+
+	    out.writeObject(new DataPacket("$NAME:" + name, null));
 	} catch (UnknownHostException e) {
 	    System.err.println("Unknown host: " + ipAddress);
 	    System.exit(1);
@@ -56,6 +71,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+	this.stage = stage;
 	stage.setTitle("DV // Cabo.");
 	stage.show();
 
@@ -63,7 +79,9 @@ public class Main extends Application {
 	stage.setScene(new Scene(cp, 500, 500));
 
 	cp.getConnectButton().setOnMouseClicked(event -> {
-		connect(cp.getIpField().getText(), Integer.parseInt(cp.getPortField().getText()));
+		connect(cp.getIpField().getText(),
+			Integer.parseInt(cp.getPortField().getText()),
+			cp.getNameField().getText());
 		waitForGo(stage);
 	    });
     }
@@ -102,7 +120,36 @@ public class Main extends Application {
     private void playTurn() {
 	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false));
 	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true));
-	tablePane.getCaboButton().setOnMouseClicked(null); // WIP
+	tablePane.getCaboButton().setOnMouseClicked(event -> {
+		Thread t = new Thread(() -> {
+			try {
+			    out.writeObject(new DataPacket("$CABO", game));
+			} catch (IOException e) { e.printStackTrace(); }
+
+			waitTurnWhileUpdating();
+		});
+		t.setDaemon(true);
+		t.start();
+	    });
+    }
+
+    private void renderLeaderboard() {
+	GridPane leaderboard = new GridPane();
+	leaderboard.setAlignment(Pos.CENTER);
+	leaderboard.setHgap(3);
+	leaderboard.setVgap(5);
+
+	int lbCount = 0;
+	for (Map.Entry<Player, Integer> lbEntry : game.getScores().entrySet()) {
+	    Text playerName = new Text(lbEntry.getKey().getName() + ":");
+	    Text playerScore = new Text(Integer.toString(lbEntry.getValue()));
+	    GridPane.setHalignment(playerName, HPos.RIGHT);
+	    leaderboard.add(playerName, 0, lbCount);
+	    leaderboard.add(playerScore, 1, lbCount);
+	    lbCount++;
+	}
+
+	stage.setScene(new Scene(leaderboard, 500, 500));
     }
 
     private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard) {
@@ -204,15 +251,19 @@ public class Main extends Application {
 
 		Platform.runLater(() -> renderTable());
 
-		if (res.info.startsWith("$NEXT")) break;
+		if (res.info.startsWith("$NEXT")) {
+		    Platform.runLater(() -> playTurn());
+		    break;
+		} else if (res.info.startsWith("$END")) {
+		    Platform.runLater(() -> renderLeaderboard());
+		    break;
+		}
 	    }
 	} catch (IOException ex) {
 	    System.out.println("Exception as control flow..");
 	} catch (ClassNotFoundException e1) {
 	    e1.printStackTrace();
 	}
-
-	Platform.runLater(() -> playTurn());
     }
 
     private void endTurnAndWait() {
