@@ -25,7 +25,6 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private static final TurnEndEvent END_EVENT = new TurnEndEvent();
     private StackPane root = new StackPane();
     private TablePane tablePane;
 
@@ -55,33 +54,6 @@ public class Main extends Application {
 	}
     }
 
-    private void listenForGo(Stage stage) {
-	Thread t = new Thread(() -> {
-		try {
-		    DataPacket res;
-		    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
-			res = (DataPacket) in.readObject();
-			if (res.info.startsWith("$GO:")) {
-			    game = res.game;
-			    myIdx = Integer.parseInt(res.info.substring(4));
-			    break;
-			}
-		    }
-		} catch (IOException e) {
-		    System.out.println("Exception as control flow..");
-		} catch (ClassNotFoundException e1) {
-		    e1.printStackTrace();
-		}
-
-		Platform.runLater(() -> {
-			stage.setScene(new Scene(root, 1550, 1550)); // 1550 makes a nice border around ActionPane's 1500
-			renderInitPeeks();
-		    });
-	});
-	t.setDaemon(true);
-	t.start();
-    }
-
     @Override
     public void start(Stage stage) throws Exception {
 	stage.setTitle("DV // Cabo.");
@@ -92,7 +64,7 @@ public class Main extends Application {
 
 	cp.getConnectButton().setOnMouseClicked(event -> {
 		connect(cp.getIpField().getText(), Integer.parseInt(cp.getPortField().getText()));
-		listenForGo(stage);
+		waitForGo(stage);
 	    });
     }
 
@@ -124,82 +96,98 @@ public class Main extends Application {
 	tablePane = new TablePane(player, opponents,
 				  new DeckView(new CardView(game.getDeck().getTopCard())),
 				  new DeckView(new CardView(game.getDiscardPile().getTopCard())));
-	root.getChildren().add(tablePane);
+	root.getChildren().setAll(tablePane); // Could be a problem with using `setAll()`?
     }
 
     private void playTurn() {
-	HandPane playerHand = new HandPane(player.getHand());
-	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false, playerHand));
-	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true, playerHand));
+	tablePane.getDeckView().setOnMouseClicked(handleDrawnCard(false));
+	tablePane.getDiscardView().setOnMouseClicked(handleDrawnCard(true));
+	tablePane.getCaboButton().setOnMouseClicked(null); // WIP
     }
 
-    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard, HandPane playerHand) {
+    private EventHandler<MouseEvent> handleDrawnCard(boolean isFromDiscard) {
 	return new EventHandler<MouseEvent>() {
 	    @Override
-	    public void handle(MouseEvent e) {
+	    public void handle(MouseEvent deckViewEvent) {
+		HandPane playerHand = new HandPane(player.getHand());
+
 		CardPile drawFrom = isFromDiscard ? game.getDiscardPile() : game.getDeck();
 		CardView drawnCardView = new CardView(drawFrom.getTopCard());
 		drawnCardView.setSeen();
 
 		DrawPane dp = new DrawPane(drawnCardView);
 		dp.setHandView(playerHand);
-		// dp.getCaboButton().setOnMouseClicked(ee -> {
-		//	game.callCabo();
-		//	dp.fireEvent(END_EVENT);
-		//     });
+		root.getChildren().add(dp);
 
 		if (isFromDiscard) {
-		    dp.getDiscardButton().setOnMouseClicked(eee -> dp.fireEvent(END_EVENT)); // Drawing from discard and discarding it makes no change.
-		}
-		else {
-		    dp.getDiscardButton().setOnMouseClicked(eee -> {
+		    dp.getDiscardButton().setOnMouseClicked(e -> endTurn(dp)); // Drawing from discard and discarding it makes no change.
+		} else {
+		    dp.getDiscardButton().setOnMouseClicked(e -> {
 			    game.useCard();
-			    dp.fireEvent(END_EVENT);
+			    endTurn(dp);
 			});
 
 		    if (game.getDeck().getTopCard().getAction() != Card.Action.NONE) {
 			// Card is drawn from the deck and has an action (ie. action is available).
+			dp.enableActionButton();
 			dp.getActionButton().setText("Click to " + game.getDeck().getTopCard().getAction());
 			dp.getActionButton().setOnMouseClicked(handleAction(dp, game.getDeck().getTopCard().getAction(), playerHand));
-			dp.enableActionButton();
 		    }
 		}
 
-		root.getChildren().add(dp);
-		dp.addEventHandler(TurnEndEvent.TEST, ee -> {
-			root.getChildren().remove(dp);
-
-			CardView discardView = new CardView(game.getDiscardPile().getTopCard());
-			discardView.setSeen();
-			tablePane.getDiscardView().setTopCardView(discardView);
-
-			tablePane.getDeckView().setOnMouseClicked(null);
-			tablePane.getDiscardView().setOnMouseClicked(null);
-			endTurnAndWait();
-		    });
-
 		playerHand.setOnClickCardView(cv -> {
 			int cardIdx = playerHand.getCardViews().indexOf(cv);
-
 			if (isFromDiscard) {
 			    game.drawFromDiscard(cardIdx, player);
-
-			    tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDiscardView().getTopCardView());
 			} else {
 			    game.drawFromDeck(cardIdx, player);
-
-			    tablePane.getPlayerHand().setCardViewByIdx(cardIdx, tablePane.getDeckView().getTopCardView());
-			    tablePane.getDeckView().setTopCardView(new CardView(game.getDeck().getTopCard()));
-
-			    drawnCardView.setHidden();
 			}
-
-			playerHand.setCardViewByIdx(cardIdx, drawnCardView);
-
-			dp.fireEvent(END_EVENT);
+			// Instantly render the change locally, to provide feedback on turn's end:
+			tablePane.getPlayerHand().setCardViewByIdx(cardIdx, ((DeckView) deckViewEvent.getSource()).getTopCardView());
+			// While other re-rendering is done when server sends next instruction, via `renderTable()`:
+			endTurn(dp);
 		    });
 	    }
 	};
+    }
+
+    private void endTurn(DrawPane dp) {
+	root.getChildren().remove(dp);
+
+	CardView discardView = new CardView(game.getDiscardPile().getTopCard());
+	discardView.setSeen();
+	tablePane.getDiscardView().setTopCardView(discardView);
+
+	tablePane.getDeckView().setOnMouseClicked(null);
+	tablePane.getDiscardView().setOnMouseClicked(null);
+	endTurnAndWait();
+    }
+
+    private void waitForGo(Stage stage) {
+	Thread t = new Thread(() -> {
+		try {
+		    DataPacket res;
+		    while (true) { // https://stackoverflow.com/questions/12684072/eofexception-when-reading-files-with-objectinputstream
+			res = (DataPacket) in.readObject();
+			if (res.info.startsWith("$GO:")) {
+			    game = res.game;
+			    myIdx = Integer.parseInt(res.info.substring(4));
+			    break;
+			}
+		    }
+		} catch (IOException e) {
+		    System.out.println("Exception as control flow..");
+		} catch (ClassNotFoundException e1) {
+		    e1.printStackTrace();
+		}
+
+		Platform.runLater(() -> {
+			stage.setScene(new Scene(root, 1550, 1550)); // 1550 makes a nice border around ActionPane's 1500
+			renderInitPeeks();
+		    });
+	});
+	t.setDaemon(true);
+	t.start();
     }
 
     @SuppressWarnings("unchecked") // Hide annoying warning about type-casting the cloned `ArrayList`.
@@ -239,7 +227,7 @@ public class Main extends Application {
 	t.start();
     }
 
-    private void performAction(DrawPane dp, Card.Action action, Player chosenOpponent, String tpSide) {
+    private void performAction(DrawPane dp, Card.Action action, Player chosenOpponent, HandPane tableOppHP) {
 	if (action == Card.Action.SWAP) {
 	    HandPane ownHP = new HandPane(player.getHand());
 	    HandPane oppHP = new HandPane(chosenOpponent.getHand());
@@ -260,14 +248,12 @@ public class Main extends Application {
 			int ownIdx = ownHP.getCardViews().indexOf(ownCV);
 			player.swapCardsWithP(chosenOpponent, ownIdx, temp);
 
-			CardView oppCV = oppHP.getCardViews().get(temp);
-			if (tpSide.equals("L")) tablePane.getLeftHand().setCardViewByIdx(temp, ownCV);
-			else if (tpSide.equals("T")) tablePane.getTopHand().setCardViewByIdx(temp, ownCV);
-			else if (tpSide.equals("R")) tablePane.getRightHand().setCardViewByIdx(temp, ownCV);
+			CardView oppCV = tableOppHP.getCardViews().get(temp);
+			tableOppHP.setCardViewByIdx(temp, ownCV);
 			tablePane.getPlayerHand().setCardViewByIdx(ownIdx, oppCV);
 
 			root.getChildren().remove(sp);
-			dp.fireEvent(END_EVENT);
+			endTurn(dp);
 		    }
 		});
 	} else if (action == Card.Action.SPY) {
@@ -284,32 +270,16 @@ public class Main extends Application {
 		if (action == Card.Action.PEEK) { // Don't need to select an opponent to peek OWN hand.
 		    viewCardFromPlayer(dp, player);
 		} else {
-		    HBox opponentSelection = new HBox();
-		    Button bLeft;
-		    Button bRight;
-		    Button bTop;
-		    switch (opponents.size()) {
-		    case 1:
-			performAction(dp, action, opponents.get(0), "T");
-			break;
-		    case 2:
-			bLeft = new Button("Left");
-			bLeft.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(0), "L"));
-			bRight = new Button("Right");
-			bRight.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(1), "R"));
-			opponentSelection.getChildren().setAll(bLeft, bRight);
-			dp.getPaneLayout().add(opponentSelection, 0, 4);
-			break;
-		    case 3:
-			bLeft = new Button("Left");
-			bLeft.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(0), "L"));
-			bTop = new Button("Top");
-			bTop.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(1), "T"));
-			bRight = new Button("Right");
-			bRight.setOnMouseClicked(ee -> performAction(dp, action, opponents.get(2), "R"));
-			opponentSelection.getChildren().setAll(bLeft, bTop, bRight);
-			dp.getPaneLayout().add(opponentSelection, 0, 4);
-			break;
+		    root.getChildren().remove(dp);
+
+		    if (opponents.size() == 1) performAction(dp, action, opponents.get(0), tablePane.getTopHand());
+		    else {
+			root.getChildren().remove(dp); // In order to choose an opposing hand, we must hide the DrawPane.
+			tablePane.getDeckView().setVisible(false);    // Reset via `renderTable()`
+			tablePane.getDiscardView().setVisible(false); // ^
+			tablePane.getCaboButton().setVisible(false);  // ^
+			tablePane.getCue().setText("Select an opponent's hand.");
+			tablePane.setOnClickHandPane((oppHP, oppIdx) -> performAction(dp, action, opponents.get(oppIdx), oppHP));
 		    }
 		}
 	    }
@@ -326,7 +296,7 @@ public class Main extends Application {
 	hp.setOnClickCardView(cv -> {
 		if (temp < 0) {
 		    root.getChildren().remove(pp);
-		    dp.fireEvent(END_EVENT);
+		    endTurn(dp);
 		}
 		cv.setSeen();
 		temp--;

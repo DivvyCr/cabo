@@ -33,9 +33,6 @@ public class ServerThread extends Thread {
 
     public void run() {
 	try {
-	    // Server.threads.add(this);
-	    // if (Server.threads.indexOf(this) == 0) isHost = true;
-
 	    out.writeObject(new DataPacket("Connected.", null));
 	    out.flush();
 
@@ -48,7 +45,6 @@ public class ServerThread extends Thread {
 	    }
 	} catch (EOFException e1) {
 	    System.out.println("Exception as control flow..");
-	    // e1.printStackTrace();
 	} catch (Exception e2) {
 	    e2.printStackTrace();
 	} finally {
