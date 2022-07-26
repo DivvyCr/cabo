@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import dvc.cabo.logic.Player;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
@@ -16,7 +17,9 @@ public class TablePane extends BorderPane {
 
     // Currently, limiting to 1v1, for simplicity:
     private final HandPane playerHand, topHand, leftHand, rightHand;
+    private final ArrayList<HandPane> opponentHands;
     private final DeckView deckView, discardView;
+    private final Button caboButton;
     private final Text cue;
 
     public TablePane(Player player, ArrayList<Player> opponents, DeckView deckView, DeckView discardView) {
@@ -56,32 +59,44 @@ public class TablePane extends BorderPane {
 	cue.setFont(Font.font("Open Sans", FontWeight.BOLD, 24));
 	cue.setFill(Color.BLACK);
 
+	caboButton = new Button("Call CABO.");
+
 	centerSpace = new GridPane();
 	centerSpace.add(deckView, 0, 0);
 	centerSpace.add(cue, 1, 0);
 	centerSpace.add(discardView, 2, 0);
+	centerSpace.add(caboButton, 1, 1);
 	centerSpace.setAlignment(Pos.CENTER);
 	setCenter(centerSpace);
 
 	setAlignment(playerHand, Pos.CENTER);
 	setBottom(playerHand);
 
+	opponentHands = new ArrayList<>();
+
 	if (leftHand != null) {
 	    setAlignment(leftHand, Pos.CENTER);
 	    setLeft(leftHand);
+	    opponentHands.add(leftHand);
 	}
 
 	if (topHand != null) {
 	    setAlignment(topHand, Pos.CENTER);
 	    setTop(topHand);
+	    opponentHands.add(topHand);
 	}
 
 	if (rightHand != null) {
 	    setAlignment(rightHand, Pos.CENTER);
 	    setRight(rightHand);
+	    opponentHands.add(rightHand);
 	}
 
 	setPadding(new Insets(200));
+    }
+
+    public void setOnClickHandPane(TableFunction tableFunction) {
+	for (HandPane hp : opponentHands) hp.setOnMouseClicked(e -> tableFunction.set(hp, opponentHands.indexOf(hp)));
     }
 
     public HandPane getPlayerHand() {
@@ -106,6 +121,10 @@ public class TablePane extends BorderPane {
 
     public DeckView getDiscardView() {
 	return discardView;
+    }
+
+    public Button getCaboButton() {
+	return caboButton;
     }
 
     public Text getCue() {

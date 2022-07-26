@@ -13,7 +13,6 @@ public class DrawPane extends ActionPane {
     private CardView cardView;
     private HBox buttons;
     private Button discardButton;
-    private Button caboButton;
     private Button actionButton;
     private HandPane handPane;
 
@@ -35,10 +34,8 @@ public class DrawPane extends ActionPane {
 	GridPane.setHalignment(buttons, HPos.CENTER);
 
 	actionButton = new Button();
-	caboButton = new Button("Call CABO.");
 	discardButton = new Button("Discard.");
-
-	buttons.getChildren().addAll(caboButton, discardButton);
+	buttons.getChildren().add(discardButton); // `actionButton` is added via `enableActionButton()`
 	paneLayout.add(buttons, 0, 2);
 
 	handPane = new HandPane();
@@ -74,10 +71,6 @@ public class DrawPane extends ActionPane {
 
     public Button getActionButton() {
 	return actionButton;
-    }
-
-    public Button getCaboButton() {
-	return caboButton;
     }
 
     public Button getDiscardButton() {
