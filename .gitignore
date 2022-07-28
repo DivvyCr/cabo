@@ -10,10 +10,6 @@ target/
 *.ipr
 
 ### Eclipse, for the Eclipse LSP server (Emacs dev)
-.apt_generated
 .classpath
-.factorypath
 .project
 .settings
-.springBeans
-.sts4-cache

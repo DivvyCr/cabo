@@ -3,6 +3,7 @@ package dvc.cabo;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class Main extends Application {
 
     private void connect(String ipAddress, int portNumber, String name) {
 	try {
-	    socket = new Socket(ipAddress, portNumber);
+	    socket = new Socket(InetAddress.getByName(ipAddress), portNumber);
 	    out = new ObjectOutputStream(socket.getOutputStream());
 	    in = new ObjectInputStream(socket.getInputStream());
 
