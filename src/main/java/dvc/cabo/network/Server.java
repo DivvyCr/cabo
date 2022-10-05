@@ -34,7 +34,7 @@ public class Server {
 	try {
 	    serverSocket = new ServerSocket(portNumber);
 
-	    while (threads.size() < 3) {
+	    while (threads.size() < 2) {
 		Socket acceptedSocket = serverSocket.accept();
 		System.out.println("   Connected: " + acceptedSocket.getInetAddress());
 		ServerThread newThread = new ServerThread(acceptedSocket);
